@@ -4,6 +4,7 @@ library(data.table)
 library(doParallel)
 library(Biobase)
 library(qs)
+library(ggplot2)
 
 
 parentFolderPath = file.path('data', 'expression_data') 
@@ -20,32 +21,40 @@ esetList = getStudyDataList(parentFolderPath, studyMetadata)
 
 
 #standardizing genewise expression values to mean zero, variance 1 
-scaledEsetList = foreach(
-  eset = esetList
-  , .final = function(eset) {setNames(eset, names(esetList))}) %do% {
-  
-  esetScaled = eset
-  exprs(esetScaled) = t(scale(t(exprs(eset))))
-  
-  return(esetScaled)}
-
+scaledEsetList = foreach(eset = esetList) %do% {
+    
+    esetScaled = eset
+    exprs(esetScaled) = t(scale(t(exprs(eset))))
+    
+    return(esetScaled)}
+names(scaledEsetList) = names(esetList)
 
 #combat for individual-level batch correction 
-cbEsetList = foreach(
-  eset = scaledEsetList
-  , .final = function(eset) {setNames(eset, names(scaledEsetList))}) %do% {
-  
-  cbEset = eset
-  pheno = pData(eset)
-  edata = exprs(eset)
-  batch = sampleMetadata[sample %in% pheno[, 'geo_accession'], subject]
-  
-  modCombat = model.matrix(~1, data = pheno)
-  combatEdata = ComBat(edata, batch = batch, mod = modCombat)
-  
-  exprs(cbEset) = combatEdata
-  
-  return(cbEset)}
+cbEsetList = foreach(eset = scaledEsetList) %do% {
+    
+    cbEset = eset
+    pheno = pData(eset)
+    edata = exprs(eset)
+    batch = sampleMetadata[sample %in% pheno[, 'geo_accession'], subject]
+    
+    modCombat = model.matrix(~1, data = pheno)
+    combatEdata = ComBat(edata, batch = batch, mod = modCombat)
+    
+    exprs(cbEset) = combatEdata
+    
+    return(cbEset)}
+names(cbEsetList) = names(esetList)
+
+
+#gene-level plots
+ggplot() +
+  geom_violin(aes(x = ))
+
+
+#individual-level plots
+
+
+#study-level plots
 
 
 #cross-study normalization
