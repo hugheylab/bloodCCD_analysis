@@ -11,6 +11,7 @@ library(ggplot2)
 library(ggrepel)
 library(cowplot)
 library(annotate)
+library(ggarrange)
 
 theme_set(theme_bw())
 
@@ -300,7 +301,11 @@ p8 = ggplot(data = lambdaSumm) +
 cvPlt2 = plot_grid(p6, p7, p8, nrow = 2, labels = 'AUTO', align = 'v')
 
 #gene selections
-geneSummGlmnet = cvCoefs[
+top50Coefs = cvCoefs[
+  , .SD[abs(coef) %in% head(sort(abs(coef)), 50)]
+  , by = .(lambda, param)]
+
+geneSummGlmnet = top50Coefs[
   lambda == round(glmnetCvMse$lambda.1se, 7)
   | lambda == round(glmnetCvMae$lambda.1se, 7)
   | lambda == round(glmnetCvMse$lambda.min, 7)
@@ -315,14 +320,13 @@ geneSummGlmnet = cvCoefs[
   , by = gene]
 
 p9 = ggplot(data = geneSummGlmnet[
-  lambda_fac == 'mse_1se' 
-  & param == 'cos']
+  lambda_fac == 'mse_1se',]
   , aes(x = reorder(gene_sym, coef), y = coef)) +
   geom_point(size = 1) +
   geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
     , y = 0, yend = coef)) +
   scale_y_continuous(expand = c(0.015, 0)) +
-  # facet_grid(~ opt + param) +
+  facet_grid(~ param) +
   coord_flip() +
   ggtitle('Genes selected by glmnet with lambda.1se') +
   xlab('Gene') +
@@ -346,41 +350,104 @@ p10 = ggplot(data = geneSummGlmnet[
     , axis.text.x = element_text(angle = 90))
 
 
-p10 = ggplot(data = geneSummGlmnet[lambda_fac == 'min']
-  , aes(x = reorder(gene_sym, amp), y = amp)) +
+p11 = ggplot(data = geneSummGlmnet[lambda_fac == 'min']
+  , aes(x = reorder(gene_sym, coef), y = coef)) +
   geom_point(size = 1) +
-  geom_segment(aes(x = reorder(gene_sym, amp), xend = reorder(gene_sym, amp)
-    , y = 0, yend = amp)) +
+  geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
+    , y = 0, yend = coef)) +
   scale_y_continuous(expand = c(0.015, 0)) +
-  ggtitle('Genes selected by glmnet with lambda.min') +
+  facet_grid(~ param) +
+  coord_flip() +
+  ggtitle('Genes selected by glmnet with lambda.1se') +
   xlab('Gene') +
-  ylab('Amplitude') +
-  theme(axis.text = element_text(size = 5)
-    , axis.text.x = element_text(angle = 90))
+  ylab('Coefficient') +
+  theme(axis.text = element_text(size = 7)
+        , axis.text.x = element_text(angle = 90))
+
+p12 = ggplot(data = geneSummGlmnet[lambda_fac == 'pred_rmse']
+  , aes(x = reorder(gene_sym, coef), y = coef)) +
+  geom_point(size = 1) +
+  geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
+    , y = 0, yend = coef)) +
+  scale_y_continuous(expand = c(0.015, 0)) +
+  facet_grid(~ param) +
+  coord_flip() +
+  ggtitle('Genes selected by glmnet with lambda.1se') +
+  xlab('Gene') +
+  ylab('Coefficient') +
+  theme(axis.text = element_text(size = 7)
+        , axis.text.x = element_text(angle = 90))
+
+p13 = ggplot(data = geneSummGlmnet[lambda_fac == 'pred_mae']
+  , aes(x = reorder(gene_sym, coef), y = coef)) +
+  geom_point(size = 1) +
+  geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
+    , y = 0, yend = coef)) +
+  scale_y_continuous(expand = c(0.015, 0)) +
+  facet_grid(~ param) +
+  coord_flip() +
+  ggtitle('Genes selected by glmnet with lambda.1se') +
+  xlab('Gene') +
+  ylab('Coefficient') +
+  theme(axis.text = element_text(size = 7)
+        , axis.text.x = element_text(angle = 90))
+
+# genes for time courses
+modelsByGene = geneSummGlmnet[
+  , .(counts = uniqueN(lambda_fac)
+      , meanAbsCoef = mean(abs(coef)))
+  , by = .(gene_sym, gene, param)]
+setorderv(modelsByGene, c('counts', 'meanAbsCoef')
+  , order = -1L)
+
+timeCourseDt = as.data.table(t(emat[head(unique(modelsByGene$gene), 20)
+                                    , sm$sample])
+  , keep.rownames = 'sample')
+colnames(timeCourseDt)[-1] = as.character(lookUp(colnames(timeCourseDt)[-1]
+  , 'org.Hs.eg', 'SYMBOL', load = TRUE))
+timeCourseDt = merge(timeCourseDt, sm[, .(sample, ztFrac)], by = 'sample')
 
 
-#prediction
-glmnetPredsMin = predict(glmnetCvMse, xClock, s = glmnetCvMse$lambda.min)
-glmnetPredsMinDt = as.data.table(glmnetPredsMin)
-setnames(glmnetPredsMinDt, c('sample', 'var', 'int', 'value'))
-glmnetPredsMinDt = dcast(glmnetPredsMinDt, sample ~ var, value.var = 'value')
+ggplot(timeCourseDt, aes(x = ztFrac, y = PER3)) +
+  geom_point()
 
-glmnetPreds1se = predict(glmnetCvMse, xClock, s = glmnetCvMse$lambda.min)
-glmnetPreds1seDt = as.data.table(glmnetPreds1se)
-setnames(glmnetPreds1seDt, c('sample', 'var', 'int', 'value'))
-glmnetPreds1seDt = dcast(glmnetPreds1seDt, sample ~ var, value.var = 'value')
+pTcList = 
+  foreach(coln = colnames(timeCourseDt)[-c(1, ncol(timeCourseDt))]) %dopar% {
+    
+    p = ggplot(timeCourseDt, aes(x = ztFrac*24, y = get(coln))) +
+      geom_point() +
+      ylab('Expression') +
+      xlim(0, 24) +
+      ggtitle(glue('Time course for {coln}'))}
 
-
-#comparison with zeitzeiger
-geneCombn = dcast(geneSummGlmnet, gene_sym ~ lambda_fac, value.var = 'lambda')
-setnames(geneCombn, c('1se', 'min'), c('lam_1se', 'lam_min'))
-geneCombn = merge(geneCombn, vCoefs, by = 'gene_sym', all = TRUE)
-geneCombn = geneCombn[
-  , .(lam_1se = ifelse(!is.na(lam_1se), 1, 0)
-      , lam_min = ifelse(!is.na(lam_min), 1, 0)
-      , zz = ifelse(!is.na(spc_1) | !is.na(spc_2) | !is.na(spc_3), 1, 0)
-      , gene_sym)]
+ggarrange(plotlist = pTcList, nrow = 2)
 
 
-sum(is.nan(glmnetPredsMinDt$y))
+
+
+
+# #prediction
+# glmnetPredsMin = predict(glmnetCvMse, xClock, s = glmnetCvMse$lambda.min)
+# glmnetPredsMinDt = as.data.table(glmnetPredsMin)
+# setnames(glmnetPredsMinDt, c('sample', 'var', 'int', 'value'))
+# glmnetPredsMinDt = dcast(glmnetPredsMinDt, sample ~ var, value.var = 'value')
+# 
+# glmnetPreds1se = predict(glmnetCvMse, xClock, s = glmnetCvMse$lambda.min)
+# glmnetPreds1seDt = as.data.table(glmnetPreds1se)
+# setnames(glmnetPreds1seDt, c('sample', 'var', 'int', 'value'))
+# glmnetPreds1seDt = dcast(glmnetPreds1seDt, sample ~ var, value.var = 'value')
+# 
+# 
+# #comparison with zeitzeiger
+# geneCombn = dcast(geneSummGlmnet, gene_sym ~ lambda_fac, value.var = 'lambda')
+# setnames(geneCombn, c('1se', 'min'), c('lam_1se', 'lam_min'))
+# geneCombn = merge(geneCombn, vCoefs, by = 'gene_sym', all = TRUE)
+# geneCombn = geneCombn[
+#   , .(lam_1se = ifelse(!is.na(lam_1se), 1, 0)
+#       , lam_min = ifelse(!is.na(lam_min), 1, 0)
+#       , zz = ifelse(!is.na(spc_1) | !is.na(spc_2) | !is.na(spc_3), 1, 0)
+#       , gene_sym)]
+# 
+# 
+# sum(is.nan(glmnetPredsMinDt$y))
 
