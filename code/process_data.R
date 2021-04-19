@@ -7,7 +7,9 @@ library(qs)
 library(ggplot2)
 
 
-parentFolderPath = file.path('data', 'expression_data') 
+dataFolder= 'data'
+
+parentFolderPath = file.path(dataFolder, 'expression_data') 
 
 discoveryStudyNames = c('GSE39445', 'GSE48113', 'GSE56931')
 
@@ -53,6 +55,7 @@ cbEsetList = foreach(eset = scaledEsetList) %do% {
     
     return(cbEset)}
 names(cbEsetList) = names(esetList)
+qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm_esetList.qs'))
 
 
 #long data for plots
