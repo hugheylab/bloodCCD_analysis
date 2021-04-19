@@ -238,7 +238,7 @@ ggsave(filename = file.path(outputFolder, 'gene_time_courses_zeitzeiger.pdf')
 
 #compare 2017
 genes2017Dt = qread(file.path('data', 'genes2017.qs'))
-genes2017 = unique(genes2017Dt$geneSymbol)
+genes2017 = unique(genes2017Dt$gene_sym)
 
 emat2017 = emat
 rownames(emat2017) = as.character(lookUp(rownames(emat2017)
@@ -383,11 +383,11 @@ cvPlt2 = ggarrange(plotlist = list(p6, p7)
 cvPlt2 = annotate_figure(cvPlt2, top = text_grob('Glmnet cross-validation'))
 
 
- glmnetSumm = pltGlmnet[
-  , .(params = lambda
-      , nGenes
-      , mae
-      , model = 'glmnet')]
+glmnetSumm = pltGlmnet[
+ , .(params = lambda
+     , nGenes
+     , mae
+     , model = 'glmnet')]
 # pLambdas = glmnetSumm$params[c(94, 93, 90, 88, 87, 86, 85, 84)]
 pLambdas = glmnetSumm$params[c(65, 77)]
 

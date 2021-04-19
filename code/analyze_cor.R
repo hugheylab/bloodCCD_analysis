@@ -72,12 +72,13 @@ perturbMetadata = sampleMetadata[condition %in% perturbConds]
 
 
 zzCoefs = qread(file.path(dataFolder, 'zeitzeiger_coefs.qs'))
-setorderv(zzCoefs, c('sumabsv', 'coeff'))
+setorderv(zzCoefs, c('sumabsv', 'spc', 'coeff'))
 
 glmnetCoefs = qread(file.path(dataFolder, 'glmnet_coefs.qs'))
 setorderv(glmnetCoefs, c('lambda', 'coef'))
 
 genes2017Coefs = qread(file.path(dataFolder, 'genes2017.qs'))
+setorderv(genes2017Coefs, c('coef'))
 
 ### merged data
 #zeitzeiger
@@ -125,7 +126,11 @@ zzHeatmap =  ggplot(zzCormatMelt
 
 zzCormatCoefMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
   
-  vCo = zzCoefs[sumabsv == absv]
+  vCo = zzCoefs[sumabsv == absv 
+    & coeff != 0]
+  setorder(vCo, coeff)
+  zOrd = 1:nrow(vCo)
+  names(zOrd) = vCo$gene_sym 
   
   zCormat = cor(t(emat)[, vCo$gene], method = 'spearman')
   colnames(zCormat) = as.character(lookUp(as.character(colnames(zCormat))
@@ -133,7 +138,7 @@ zzCormatCoefMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
   rownames(zCormat) = as.character(lookUp(as.character(rownames(zCormat))
                                           , 'org.Hs.eg', 'SYMBOL', load=TRUE))
   
-  zCormatOrd = zCormat[zOpt, zOpt]
+  zCormatOrd = zCormat[zOrd, zOrd]
   
   zCormatDt = as.data.table(zCormat, keep.rownames = 'gene1')
   zCormatMelt = melt(zCormatDt, variable.name = 'gene2'
@@ -144,7 +149,22 @@ zzCormatCoefMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
            , gene2 = factor(gene2, levels = unique(colnames(zCormatOrd))))]
   
   return(zCormatMelt)}
+zzCormatCoefMelt[gene1 == gene2, rho := NA]
 
+zzCoefHeatmap =  ggplot(zzCormatCoefMelt
+                    , aes(x = gene1, y = gene2,  fill = rho))+
+  geom_tile(color = 'white') +
+  facet_wrap(~ sumabsv, scales = 'free') +
+  scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white', 
+                       midpoint = 0, limit = c(-1,1), space = 'Lab', 
+                       name = 'rho') +
+  xlab('Gene') +
+  ylab('Gene') +
+  ggtitle(glue('Overall correlation heatmaps, genes selected by zeitzeiger'
+               , ', by sumabsv with nSpc = 2')
+          , subtitle = 'ordered by coefficients') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)
+        , text = element_text(size = 16))
 
 #glmnet
 glmnetCormatMelt = foreach(lam = unique(glmnetCoefs$lambda)
@@ -152,8 +172,7 @@ glmnetCormatMelt = foreach(lam = unique(glmnetCoefs$lambda)
     
     geneSummGnet = glmnetCoefs[lambda == lam]
                              
-    gnetCormat = cor(t(emat)[, geneSummGnet$gene]
-                                              , method = 'spearman')
+    gnetCormat = cor(t(emat)[, geneSummGnet$gene], method = 'spearman')
     colnames(gnetCormat) = as.character(lookUp(as.character(colnames(gnetCormat))
       , 'org.Hs.eg', 'SYMBOL', load=TRUE))
     rownames(gnetCormat) = as.character(lookUp(as.character(rownames(gnetCormat))
@@ -190,6 +209,48 @@ pGlmnetHeatmap =  ggplot(glmnetCormatMelt
         , text = element_text(size = 16))
 
 
+glmnetCormatCoefMelt = foreach(lam = unique(glmnetCoefs$lambda)
+  , .combine = rbind) %dopar% {
+  
+  geneSummGnet = glmnetCoefs[lambda == lam]
+  setorder(geneSummGnet, coef)
+  gnetOrd = 1:nrow(geneSummGnet)
+  names(gnetOrd) = geneSummGnet$gene_sym 
+  
+  gnetCormat = cor(t(emat)[, geneSummGnet$gene], method = 'spearman')
+  colnames(gnetCormat) = as.character(lookUp(as.character(colnames(gnetCormat))
+                                             , 'org.Hs.eg', 'SYMBOL', load=TRUE))
+  rownames(gnetCormat) = as.character(lookUp(as.character(rownames(gnetCormat))
+                                             , 'org.Hs.eg', 'SYMBOL', load=TRUE))
+  
+  gnetCormatOrd = gnetCormat[gnetOrd, gnetOrd]
+  
+  gnetCormatDt = as.data.table(gnetCormat, keep.rownames = 'gene1')
+  gnetCormatMelt = melt(gnetCormatDt, variable.name = 'gene2'
+                        , value.name = 'rho')
+  gnetCormatMelt[
+    , `:=`(lambda = lam
+           , gene1 = factor(gene1, levels = unique(colnames(gnetCormatOrd)))
+           , gene2 = factor(gene2, levels = unique(colnames(gnetCormatOrd))))]
+  
+  return(gnetCormatMelt)}
+glmnetCormatCoefMelt[gene1 == gene2, rho := NA]
+
+pGlmnetCoefHeatmap =  ggplot(glmnetCormatCoefMelt
+  , aes(x = gene1, y = gene2,  fill = rho)) +
+  geom_tile(color = 'white') +
+  scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white', 
+                       midpoint = 0, limit = c(-1,1), space = 'Lab', 
+                       name = 'rho') +
+  xlab('Gene') +
+  ylab('Gene') +
+  facet_wrap(~ factor(lambda, levels = unique(glmnetCoefs$lambda))
+    , scales = 'free') +
+  ggtitle(bquote('Overall correlations, genes selected by glmnet, by '~lambda)
+    , subtitle = 'ordered by coefficients') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)
+        , text = element_text(size = 16))
+
 #2017
 emat2017 = emat
 rownames(emat2017) = as.character(lookUp(rownames(emat2017)
@@ -221,10 +282,40 @@ heatmap2017 =  ggplot(cormatMelt2017, aes(x = gene1, y = gene2,  fill = rho)) +
         , text = element_text(size = 16))
 heatmap2017 = plot_grid(heatmap2017, NULL, ncol = 2)
 
+ord2017Coef = 1:nrow(genes2017Coefs[!is.na(coef)])
+names(ord2017Coef) = genes2017Coefs[!is.na(coef)]$gene_sym
+cormatOrd2017Coef = cormat2017[ord2017Coef, ord2017Coef]
+cormatDt2017Coef = as.data.table(cormat2017, keep.rownames = 'gene1')
+cormatMelt2017Coef = melt(cormatDt2017Coef, variable.name = 'gene2'
+                      , value.name = 'rho')
+cormatMelt2017Coef[
+  , `:=`(gene1 = factor(gene1, levels = unique(colnames(cormatOrd2017Coef)))
+         , gene2 = factor(gene2, levels = unique(colnames(cormatOrd2017Coef))))]
+cormatMelt2017Coef[gene1 == gene2, rho := NA]
+
+heatmap2017Coef =  ggplot(cormatMelt2017Coef, aes(x = gene1, y = gene2
+  , fill = rho)) +
+  geom_tile(color = 'white') +
+  scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white' 
+    , midpoint = 0, limit = c(-1,1), space = 'Lab', name = 'rho') +
+  xlab('Gene') +
+  ylab('Gene') +
+  ggtitle('Overall correlation matrix, genes selected by zeitzeiger, 2017'
+    , subtitle = 'ordered by coefficients') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1)
+        , text = element_text(size = 16))
+heatmap2017Coef = plot_grid(heatmap2017Coef, NULL, ncol = 2)
+
 mergedFig = ggarrange(plotlist = list(zzHeatmap, pGlmnetHeatmap, heatmap2017)
   , nrow = 3)
 ggexport(mergedFig, filename = file.path(outputFolder, 'overall_correlations.pdf')
   , width = 36, height = 36, unit = 'in')
+
+mergedFigCoef = ggarrange(plotlist = list(zzCoefHeatmap, pGlmnetCoefHeatmap
+  , heatmap2017Coef), nrow = 3)
+ggexport(mergedFigCoef
+         , filename = file.path(outputFolder, 'overall_correlations_coef.pdf')
+         , width = 36, height = 36, unit = 'in')
 
 ###study data-sets
 studyEsetList = qread(file.path(dataFolder, 'subj_norm_esetList.qs'))
