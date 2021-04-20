@@ -203,16 +203,31 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
 qsave(vCoefsMelt, file = file.path(dataFolder, 'zeitzeiger_coefs.qs')) 
 
 #### plot of nonzero gene coefs
-p5 = ggplot(vCoefsMelt) + 
-  facet_wrap(~ sumabsv + spc, nrow = 3, scales = 'free') +
-  geom_bar(aes(x = gene_fac, y = coeff), stat = 'identity') +
-  # scale_x_discrete(labels = vCoefsMelt$gene_sym) +
-  labs(x = 'Gene', y = 'Coefficient') + 
-  coord_flip() +
-  theme(panel.spacing = unit(1.2, 'lines')) +
-  ggtitle(glue('Gene coefficients for sumabsv = {finalSumAbsv}'))
-ggexport(p5, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
+# p5 = ggplot(vCoefsMelt) + 
+#   facet_wrap(~ sumabsv + spc, nrow = 3, scales = 'free') +
+#   geom_bar(aes(x = gene_fac, y = coeff), stat = 'identity') +
+#   # scale_x_discrete(labels = vCoefsMelt$gene_sym) +
+#   labs(x = 'Gene', y = 'Coefficient') + 
+#   coord_flip() +
+#   theme(panel.spacing = unit(1.2, 'lines')) +
+#   ggtitle(glue('Gene coefficients for sumabsv = {paste(finalSumAbsv, collapse = \', \')}'))
 
+p5 = ggplot(data = vCoefsMelt 
+    , aes(x = gene_fac, y = coeff)) +
+  
+  geom_point(size = 1) +
+  geom_segment(aes(x = gene_fac, xend =gene_fac 
+                   , y = 0, yend = coeff)) +
+  scale_y_continuous(expand = c(0.015, 0)) +
+  facet_wrap(~ sumabsv + spc, scales = 'free_y'
+    , nrow = 2) +
+  coord_flip() +
+  xlab('Gene') +
+  ylab('Coefficient') +
+  theme(axis.text.y = element_text(size = 8)) +
+  ggtitle(glue('Zeitzeiger coefficients for sumabsv = '
+    , '{paste(finalSumAbsv, collapse = \', \')}'))
+ggexport(p5, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
 
 #zeitzeiger time courses
 zzTimeCourseDt = as.data.table(t(emat[unique(vCoefsMelt$gene), sm$sample])
@@ -430,6 +445,12 @@ pGlmnetCoef = ggplot(data = geneSummGlmnet
   ggtitle('Glmnet coefficients by lambda')
 ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf')
   , plot = pGlmnetCoef, width = 18, height = 18, units = 'in', dpi = 500)
+
+coefFig = ggarrange(p5, pGlmnetCoef, nrow = 2)
+ggexport(coefFig, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf')
+  , width = 16, height = 20, units = 'in', dpi = 500)
+
+
   
 
 # genes for time courses
