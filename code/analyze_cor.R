@@ -485,9 +485,11 @@ combinedCoefs = rbind(combinedCoefs
         , params = paste0('sumabsv_', sumabsv)
         , model = 'zeitzeiger')]))
 combinedCoefs = rbind(combinedCoefs
-  , unique(data.table(gene_sym = genes2017
-                      , params = '2017'
-                      , model = 'zeitzeiger')))
+  , unique(genes2017Coefs[
+    !is.na(coef)
+    , .(gene_sym 
+        , params = '2017'
+        , model = 'zeitzeiger')]))
 setorderv(combinedCoefs, cols = c('gene_sym', 'model', 'params'))
 
 modelOrder = unique(combinedCoefs[, .(params, model)])
@@ -539,9 +541,9 @@ ccdDt = foreach(param = unique(combinedCoefs$params), .combine = rbind) %:%
     esetGSE48113 = studyEsetListPerturb$GSE48113
     esetGSE56931 = studyEsetListPerturb$GSE56931}
   
-  GSE39445_GSE48113 = calcCCD(esetGSE39445, esetGSE48113, genes, scale = FALSE)
-  GSE39445_GSE56931 = calcCCD(esetGSE39445, esetGSE56931, genes, scale = FALSE)
-  GSE48113_GSE56931 = calcCCD(esetGSE48113, esetGSE56931, genes, scale = FALSE)
+  GSE39445_GSE48113 = calcCCD(esetGSE39445, esetGSE48113, genes)
+  GSE39445_GSE56931 = calcCCD(esetGSE39445, esetGSE56931, genes)
+  GSE48113_GSE56931 = calcCCD(esetGSE48113, esetGSE56931, genes)
 
   distDt = data.table(params = param
     , GSE39445_GSE48113
