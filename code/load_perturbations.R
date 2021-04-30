@@ -24,7 +24,7 @@ perturbMetadata = sampleMetadata[condition %in% perturbConds]
 esetList = getStudyDataList(parentFolderPath, studyMetadata)
 
 #limiting to perturbation samples
-perturbEsetList = foreach(eset = esetList) %do% {
+perturbEsetList = foreach (eset = esetList) %do% {
   
   esetPerturb = eset[, sampleNames(eset) %in% perturbMetadata$sample]
   return(esetPerturb)}
@@ -54,3 +54,10 @@ cbEsetList = foreach(eset = scaledEsetList) %do% {
   return(cbEset)}
 names(cbEsetList) = names(esetList)
 qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm__pert_esetList.qs'))
+
+#cross-study normalization
+ematList = extractExpressionData(cbEsetList, sampleMetadata)
+ematDiscovery = mergeStudyData(ematList[discoveryStudyNames], sampleMetadata)
+
+qsave(cbEsetList, file = file.path('data', 'perturb_esetList.qs'))
+qsave(ematDiscovery, file = file.path('data', 'perturb_emat.qs'))

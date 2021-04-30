@@ -14,10 +14,14 @@ library(annotate)
 library(ggpubr)
 library(cba)
 
+
 theme_set(theme_bw())
 
+codeFolder = file.path('code')
 outputFolder = file.path('output')
 dataFolder = file.path('data')
+
+source(file.path(codeFolder, 'cv_utils.R'))
 
 studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
@@ -62,43 +66,58 @@ ztFracRange = seq(0, 1, 0.001)
 fitResultList = zeitzeigerFitCv(xClock, sm$ztFrac, sm$foldId)
 
 spcResultList = foreach(absv = sumabsv) %dopar% {
-  
   spcResult = zeitzeigerSpcCv(fitResultList, nTime = nTime, sumabsv = absv)
-  return(spcResult)}
+  return(spcResult)
+  }
 
-predResultList = foreach(spcRes = spcResultList) %dopar%  {
-  
-  predResult = zeitzeigerPredictCv(x = xClock, time = sm$ztFrac
-    , foldid = sm$foldId, spcRes, nSpc = nSpc
-    , timeRange = ztFracRange)}
+predResultList = foreach(spcRes = spcResultList) %dopar% { 
+  predResult = zeitzeigerPredictCv(x = xClock
+                                   , time = sm$ztFrac
+                                   , foldid = sm$foldId
+                                   , spcRes
+                                   , nSpc = nSpc
+                                   , timeRange = ztFracRange
+                                   )
+  }
 
 timePredList = foreach(pred = predResultList) %dopar% {
-  
-  return(pred$timePred)}
+  return(pred$timePred)
+  }
 
 zzCv = data.table(do.call(rbind, timePredList))
 zzCv[
   , `:=`(sample = rep.int(rownames(xClock), times = length(sumabsv))
          , foldId = rep.int(sm$foldId, times = length(sumabsv))
-         , sumabsv = rep(sumabsv, each = nrow(xClock)))]
-zzCv = melt(zzCv, id.vars = c('sample', 'foldId' ,'sumabsv')
-  , measure.vars = glue('V{nSpc}'), variable.name = 'nSpc'
-  , value.name = 'ztFracPred')
+         , sumabsv = rep(sumabsv, each = nrow(xClock))
+         )
+  ]
+zzCv = melt(zzCv
+            , id.vars = c('sample', 'foldId' ,'sumabsv')
+            , measure.vars = glue('V{nSpc}')
+            , variable.name = 'nSpc'
+            , value.name = 'ztFracPred'
+            )
 zzCv[, nSpc := as.integer(sub('.', '', nSpc))]
-zzCv = merge(zzCv, controlMetadata[, .(study, subject, sample, ztFrac)]
-  , by = 'sample')
+zzCv = merge(zzCv
+             , controlMetadata[, .(study, subject, sample, ztFrac)]
+             , by = 'sample'
+             )
 zzCv[, diffFrac := getCircDiff(ztFrac, ztFracPred) * 24
   ][, `:=`(absDiffFrac = abs(diffFrac)
            , nSpc_fac = factor(nSpc)
            , sumabsv_fac = factor(sumabsv)
-           , study_fac = factor(study))]
+           , study_fac = factor(study)
+           )
+    ]
 
 #### cross-validation summary
 
 zzCvSumm = zzCv[
   , .(mse = mean(diffFrac^2)
-      , mae = mean(abs(diffFrac)))
-  , by = .(nSpc_fac, sumabsv_fac)]
+      , mae = mean(abs(diffFrac))
+      )
+  , by = .(nSpc_fac, sumabsv_fac)
+  ]
 
 zzGenes = foreach(ii=1:length(sumabsv), .combine=rbind) %dopar% {
   genesPerSpc = lapply(spcResultList[[ii]]
@@ -130,16 +149,6 @@ zzSumm = zzSumm[
       , model = 'zeitzeiger')]
 
 #### summary plots
-
-# p1 = ggplot(zzCvSumm) +
-#   geom_point(aes(x = nSpc_fac, y = sqrt(mse)
-#     , fill = sumabsv_fac, shape = sumabsv_fac)
-#     , size = 2.5) +
-#   scale_fill_brewer(name = 'sumabsv', type = 'seq', palette = 'Greys') +
-#   scale_shape_manual(name = 'sumabsv', values = c(21:23)) +
-#   labs(x = 'Number of SPCs', y = 'RMSE (hours)') +
-#   ggtitle('MSE by nSPCs and sumabsv')
-
 p2 = ggplot(zzCvSumm) +
   geom_point(aes(x = nSpc_fac, y = mae
     , fill = sumabsv_fac, shape = sumabsv_fac)
@@ -161,8 +170,8 @@ p3 = ggplot(zzGeneSumm) +
 
 cvPlt = ggarrange(plotlist = list(p2, p3), nrow = 2)
 cvPlt = annotate_figure(cvPlt, top = text_grob('Zeitzeiger cross-validation'))
-# ggexport(cvPlt, filename = file.path(outputFolder, 'zeitzeiger_cv.pdf')
-#   , width = 12, height = 6, unit = 'in', dpi = 500)
+ggexport(cvPlt, filename = file.path(outputFolder, 'zeitzeiger_cv.pdf')
+  , width = 12, height = 6, unit = 'in', dpi = 500)
 
 #### fitting 'best' model from cv
 finalSumAbsv = 2:3
@@ -177,12 +186,6 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
 
   vDt = data.table(spc = 1:length(spcResultFinal$d)
     , propVar = spcResultFinal$d^2 / sum(spcResultFinal$d^2))
-
-# plot to evaluate nspcs
-# p4 = ggplot(vDt) +
-#   geom_point(aes(x = spc, y = propVar), size = 2, shape = 1) +
-#   scale_x_continuous(breaks = seq(1, 10)) +
-#   labs(x = 'SPC', y = 'Proportion of\nvariance explained')
 
   # getting nonzero coefs
   vCo = data.table(spcResultFinal$v[, 1:finalNspc])
@@ -203,15 +206,6 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
 qsave(vCoefsMelt, file = file.path(dataFolder, 'zeitzeiger_coefs.qs')) 
 
 #### plot of nonzero gene coefs
-# p5 = ggplot(vCoefsMelt) + 
-#   facet_wrap(~ sumabsv + spc, nrow = 3, scales = 'free') +
-#   geom_bar(aes(x = gene_fac, y = coeff), stat = 'identity') +
-#   # scale_x_discrete(labels = vCoefsMelt$gene_sym) +
-#   labs(x = 'Gene', y = 'Coefficient') + 
-#   coord_flip() +
-#   theme(panel.spacing = unit(1.2, 'lines')) +
-#   ggtitle(glue('Gene coefficients for sumabsv = {paste(finalSumAbsv, collapse = \', \')}'))
-
 p5 = ggplot(data = vCoefsMelt 
     , aes(x = gene_fac, y = coeff)) +
   
@@ -230,14 +224,7 @@ p5 = ggplot(data = vCoefsMelt
 ggexport(p5, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
 
 #zeitzeiger time courses
-zzTimeCourseDt = as.data.table(t(emat[unique(vCoefsMelt$gene), sm$sample])
-  , keep.rownames = 'sample')
-colnames(zzTimeCourseDt)[-1] = as.character(lookUp(colnames(zzTimeCourseDt)[-1]
-  , 'org.Hs.eg', 'SYMBOL', load = TRUE))
-zzTimeCourseDt = merge(zzTimeCourseDt, sm[, .(study, sample, ztFrac)]
-  , by = 'sample')
-zzTimeCourseDt = melt(zzTimeCourseDt, id.vars = c('sample', 'study', 'ztFrac')
-  , value.name = 'expression', variable.name = 'gene')
+zzTimeCourseDt = getTimeCourseDt(emat, sm, unique(vCoefsMelt$gene))
 
 pZzTimeCourse = ggplot(zzTimeCourseDt, aes(x = ztFrac*24, y = expression
   , color = study)) +
@@ -255,17 +242,7 @@ ggsave(filename = file.path(outputFolder, 'gene_time_courses_zeitzeiger.pdf')
 genes2017Dt = qread(file.path('data', 'genes2017.qs'))
 genes2017 = unique(genes2017Dt$gene_sym)
 
-emat2017 = emat
-rownames(emat2017) = as.character(lookUp(rownames(emat2017)
-  , 'org.Hs.eg', 'SYMBOL', load = TRUE))
-
-timeCourseDt2017 = as.data.table(t(emat2017[unique(genes2017), sm$sample])
-  , keep.rownames = 'sample')
-timeCourseDt2017 = merge(timeCourseDt2017, sm[, .(study, sample, ztFrac)]
-  , by = 'sample')
-timeCourseDt2017 = melt(timeCourseDt2017
-  , id.vars = c('sample', 'study', 'ztFrac'), value.name = 'expression'
-  , variable.name = 'gene')
+timeCourseDt2017 = getTimeCourseDt(emat, sm, genes2017)
 
 pTimeCourse2017 = ggplot(timeCourseDt2017, aes(x = ztFrac*24, y = expression
   , color = study)) +
@@ -403,7 +380,6 @@ glmnetSumm = pltGlmnet[
      , nGenes
      , mae
      , model = 'glmnet')]
-# pLambdas = glmnetSumm$params[c(94, 93, 90, 88, 87, 86, 85, 84)]
 pLambdas = glmnetSumm$params[c(65, 77)]
 
 mdlSumm = rbind(zzSumm, glmnetSumm)
@@ -450,20 +426,8 @@ coefFig = ggarrange(p5, pGlmnetCoef, nrow = 2)
 ggexport(coefFig, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf')
   , width = 16, height = 20, units = 'in', dpi = 500)
 
-
-  
-
 # genes for time courses
-glmnetTimeCourseDt = as.data.table(t(emat[unique(geneSummGlmnet$gene)
-  , sm$sample])
-  , keep.rownames = 'sample')
-colnames(glmnetTimeCourseDt)[-1] = as.character(
-  lookUp(colnames(glmnetTimeCourseDt)[-1], 'org.Hs.eg', 'SYMBOL', load = TRUE))
-glmnetTimeCourseDt = merge(glmnetTimeCourseDt, sm[, .(study, sample, ztFrac)]
-  , by = 'sample')
-glmnetTimeCourseDt = melt(glmnetTimeCourseDt
-  , id.vars = c('sample', 'study', 'ztFrac'), value.name = 'expression'
-  , variable.name = 'gene')
+getTimeCourseDt(emat, sm, unique(geneSummGlmnet$gene))
 
 pGlmnetTimeCourse = ggplot(glmnetTimeCourseDt, aes(x = ztFrac*24, y = expression
   , color = study)) +

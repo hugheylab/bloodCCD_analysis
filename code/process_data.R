@@ -58,7 +58,7 @@ names(cbEsetList) = names(esetList)
 qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm_esetList.qs'))
 
 
-#long data for plots
+#long data for plots 
 eDt = foreach(eset = cbEsetList, .combine = rbind) %do% {
   
   emat = exprs(eset)
