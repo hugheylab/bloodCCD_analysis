@@ -55,7 +55,6 @@ sm = sm[!is.na(clock_time)]
 
 xClock = t(emat)[sm$sample, ]
 
-
 #### zeitzeiger
 sumabsv = 2:3
 nTime = 12 
@@ -197,7 +196,7 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
     , gene_sym := as.character(lookUp(as.character(gene)
       , 'org.Hs.eg', 'SYMBOL', load=TRUE))]
   vCoMelt = melt(vCo, measure.vars = glue('spc_{1:finalNspc}')
-    , variable.name = 'spc', value.name = 'coeff')
+    , variable.name = 'spc', value.name = 'coef')
   vCoMelt[
     , gene_fac := factor(gene_sym, levels = rev(vCo$gene_sym))]
   vCoMelt[
@@ -206,19 +205,7 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
 qsave(vCoefsMelt, file = file.path(dataFolder, 'zeitzeiger_coefs.qs')) 
 
 #### plot of nonzero gene coefs
-p5 = ggplot(data = vCoefsMelt 
-    , aes(x = gene_fac, y = coeff)) +
-  
-  geom_point(size = 1) +
-  geom_segment(aes(x = gene_fac, xend =gene_fac 
-                   , y = 0, yend = coeff)) +
-  scale_y_continuous(expand = c(0.015, 0)) +
-  facet_wrap(~ sumabsv + spc, scales = 'free_y'
-    , nrow = 2) +
-  coord_flip() +
-  xlab('Gene') +
-  ylab('Coefficient') +
-  theme(axis.text.y = element_text(size = 8)) +
+p5 = plotCoefs(vCoefsMelt, nrow = 2, sumabsv, spc) +
   ggtitle(glue('Zeitzeiger coefficients for sumabsv = '
     , '{paste(finalSumAbsv, collapse = \', \')}'))
 ggexport(p5, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
@@ -226,15 +213,8 @@ ggexport(p5, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
 #zeitzeiger time courses
 zzTimeCourseDt = getTimeCourseDt(emat, sm, unique(vCoefsMelt$gene))
 
-pZzTimeCourse = ggplot(zzTimeCourseDt, aes(x = ztFrac*24, y = expression
-  , color = study)) +
-  geom_point(shape = 1) +
-  ylab('Expression') +
-  xlab('Hour of day') +
-  facet_wrap(~ gene, scales = 'free_y') +
-  scale_x_continuous(breaks = seq(0, 24, by = 2), limits = c(0, 24)) +
+pZzTimeCourse = plotTimeCourse(zzTimeCourseDt) +
   ggtitle('Gene time courses for zeitzeiger')
-
 ggsave(filename = file.path(outputFolder, 'gene_time_courses_zeitzeiger.pdf')
        , plot = pZzTimeCourse, width = 24, height = 24, units = 'in', dpi = 500)
 
@@ -243,16 +223,8 @@ genes2017Dt = qread(file.path('data', 'genes2017.qs'))
 genes2017 = unique(genes2017Dt$gene_sym)
 
 timeCourseDt2017 = getTimeCourseDt(emat, sm, genes2017)
-
-pTimeCourse2017 = ggplot(timeCourseDt2017, aes(x = ztFrac*24, y = expression
-  , color = study)) +
-  geom_point(shape = 1) +
-  ylab('Expression') +
-  xlab('Hour of day') +
-  facet_wrap(~ gene, scales = 'free_y') +
-  scale_x_continuous(breaks = seq(0, 24, by = 2), limits = c(0, 24)) +
+pTimeCourse2017 = plotTimeCourse(timeCourseDt2017) +
   ggtitle('Gene time courses for zeitzeiger, 2017')
-
 ggsave(filename = file.path(outputFolder, 'gene_time_courses_2017.pdf')
   , plot = pTimeCourse2017, width = 24, height = 24, units = 'in', dpi = 500)
  
@@ -404,20 +376,7 @@ ggexport(cvPltFinal, filename = file.path(outputFolder, 'bloodCCD_cv.pdf')
 geneSummGlmnet = cvCoefs[round(lambda, 7) %in% pLambdas]
 qsave(geneSummGlmnet, file = file.path(dataFolder, 'glmnet_coefs.qs'))
 
-
-pGlmnetCoef = ggplot(data = geneSummGlmnet
-    , aes(x = reorder(gene_sym, coef), y = coef)) +
-  
-  geom_point(size = 1) +
-  geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
-                   , y = 0, yend = coef)) +
-  scale_y_continuous(expand = c(0.015, 0)) +
-  facet_wrap(~ as.factor(lambda) + param, scales = 'free_y'
-    , ncol = 2) +
-  coord_flip() +
-  xlab('Gene') +
-  ylab('Coefficient') +
-  theme(axis.text.y = element_text(size = 8)) +
+pGlmnetCoef = plotCoefs(geneSummGlmnet, ncol = 2, as.factor(lambda), param) +
   ggtitle('Glmnet coefficients by lambda')
 ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf')
   , plot = pGlmnetCoef, width = 18, height = 18, units = 'in', dpi = 500)
@@ -427,15 +386,9 @@ ggexport(coefFig, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf')
   , width = 16, height = 20, units = 'in', dpi = 500)
 
 # genes for time courses
-getTimeCourseDt(emat, sm, unique(geneSummGlmnet$gene))
+glmnetTimeCourseDt = getTimeCourseDt(emat, sm, unique(geneSummGlmnet$gene))
 
-pGlmnetTimeCourse = ggplot(glmnetTimeCourseDt, aes(x = ztFrac*24, y = expression
-  , color = study)) +
-  geom_point(shape = 1) +
-  ylab('Expression') +
-  xlab('Hour of day') +
-  facet_wrap(~ gene, scales = 'free_y') +
-  scale_x_continuous(breaks = seq(0, 24, by = 2), limits = c(0, 24)) +
+pGlmnetTimeCourse = plotTimeCourse(glmnetTimeCourseDt) +
   ggtitle('Gene time courses for glmnet')
 ggsave(filename = file.path(outputFolder, 'gene_time_courses_glmnet.pdf')
   , plot = pGlmnetTimeCourse, width = 24, height = 24, units = 'in', dpi = 500)
