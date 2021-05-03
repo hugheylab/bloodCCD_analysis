@@ -14,7 +14,7 @@ library(annotate)
 library(ggpubr)
 library(cba)
 
-
+#setup
 theme_set(theme_bw())
 
 codeFolder = file.path('code')
@@ -23,6 +23,7 @@ dataFolder = file.path('data')
 
 source(file.path(codeFolder, 'cv_utils.R'))
 
+#loading data
 studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
 
@@ -55,7 +56,7 @@ sm = sm[!is.na(clock_time)]
 
 xClock = t(emat)[sm$sample, ]
 
-#### zeitzeiger
+#### zeitzeiger fit
 sumabsv = 2:3
 nTime = 12 
 nSpc = 1:2
@@ -110,7 +111,6 @@ zzCv[, diffFrac := getCircDiff(ztFrac, ztFracPred) * 24
     ]
 
 #### cross-validation summary
-
 zzCvSumm = zzCv[
   , .(mse = mean(diffFrac^2)
       , mae = mean(abs(diffFrac))
@@ -138,7 +138,6 @@ zzGeneSumm = zzGenes[
       , sdGenes = sd(nGenes))
   , by = .(sumabsv_fac, nSpc_fac)]
 
-
 zzSumm = merge(zzGeneSumm, zzCvSumm, by = c('sumabsv_fac', 'nSpc_fac'))
 zzSumm[, params := paste0('sumabsv = ', sumabsv_fac, ', nSpc = ', nSpc_fac)]
 zzSumm = zzSumm[
@@ -147,7 +146,7 @@ zzSumm = zzSumm[
       , mae
       , model = 'zeitzeiger')]
 
-#### summary plots
+#### zeitzeiger cv summary plots
 p2 = ggplot(zzCvSumm) +
   geom_point(aes(x = nSpc_fac, y = mae
     , fill = sumabsv_fac, shape = sumabsv_fac)
@@ -172,7 +171,7 @@ cvPlt = annotate_figure(cvPlt, top = text_grob('Zeitzeiger cross-validation'))
 ggexport(cvPlt, filename = file.path(outputFolder, 'zeitzeiger_cv.pdf')
   , width = 12, height = 6, unit = 'in', dpi = 500)
 
-#### fitting 'best' model from cv
+#### fitting 'best' model from zeitzeiger cv
 finalSumAbsv = 2:3
 finalNspc = 2
 fitResultFinal = zeitzeigerFit(xClock, sm$ztFrac) 
@@ -204,7 +203,7 @@ vCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
            , sumabsv = absv)]}
 qsave(vCoefsMelt, file = file.path(dataFolder, 'zeitzeiger_coefs.qs')) 
 
-#### plot of nonzero gene coefs
+#### plot of nonzero gene coefs for zeitzeiger
 p5 = plotCoefs(vCoefsMelt, nrow = 2, sumabsv, spc) +
   ggtitle(glue('Zeitzeiger coefficients for sumabsv = '
     , '{paste(finalSumAbsv, collapse = \', \')}'))
@@ -218,7 +217,7 @@ pZzTimeCourse = plotTimeCourse(zzTimeCourseDt) +
 ggsave(filename = file.path(outputFolder, 'gene_time_courses_zeitzeiger.pdf')
        , plot = pZzTimeCourse, width = 24, height = 24, units = 'in', dpi = 500)
 
-#compare 2017
+#compare zeitzeiger 2017
 genes2017Dt = qread(file.path('data', 'genes2017.qs'))
 genes2017 = unique(genes2017Dt$gene_sym)
 
@@ -228,8 +227,7 @@ pTimeCourse2017 = plotTimeCourse(timeCourseDt2017) +
 ggsave(filename = file.path(outputFolder, 'gene_time_courses_2017.pdf')
   , plot = pTimeCourse2017, width = 24, height = 24, units = 'in', dpi = 500)
  
-
-#### glmnet
+#### glmnet fits
 alph = 0.9
 
 y = cbind(sm[, cos(2*pi*ztFrac)], sm[, sin(2*pi*ztFrac)])
@@ -274,8 +272,7 @@ glmnetCvDt = glmnetCvDt[
   , 24*.SD[, .(mae, ae_sd, upper, lower)]
   , by = lambda]
 
-
-#gene coefficients by lambda
+#glmnet gene coefficients by lambda
 cvCoefs = foreach(lambda = glmnetCvMae$lambda
   , .combine = rbind) %do% {
     
@@ -292,7 +289,6 @@ cvCoefs = foreach(lambda = glmnetCvMae$lambda
 
     return(betaDt)}
   
-
 cvCoefs = cvCoefs[gene != '(Intercept)']
 cvCoefs = melt(cvCoefs, id.vars = c('lambda', 'gene')
   , measure.vars = c('cos', 'sin'), value.name = 'coef'
@@ -300,17 +296,16 @@ cvCoefs = melt(cvCoefs, id.vars = c('lambda', 'gene')
 cvCoefs[
   , gene_sym := as.character(lookUp(gene, 'org.Hs.eg', 'SYMBOL', load = TRUE))]
 
-
 lambdaSumm = cvCoefs[
   , .(nGenes = uniqueN(gene_sym)) 
   , by = lambda]
 lambdaSumm[, lambda := round(lambda, 7)]
 
-#plot dt
+#glmnet plot dt
 pltGlmnet = merge(glmnetCvDt, lambdaSumm, by = 'lambda')
 
-# summary plots
-# cross-validation by mae
+# glmnet summary plots
+# glmnet cv plot
 p6 = ggplot(data = pltGlmnet) +
   geom_errorbar(aes(x = lambda, ymax = upper, ymin = lower)) +
   geom_point(aes(x = lambda, y = mae),
@@ -327,6 +322,7 @@ p6 = ggplot(data = pltGlmnet) +
     x = c(glmnetCvMae$lambda.1se, glmnetCvMae$lambda.min),
     y = c(5, 5),angle = 0, vjust = 1, parse = TRUE)
 
+#ngenes by lambda
 p7 = ggplot(data = pltGlmnet) +
   geom_point(aes(x = lambda, y = nGenes)) +
   geom_vline(aes(xintercept = glmnetCvMae$lambda.1se), lty = 'dashed'
@@ -346,7 +342,6 @@ cvPlt2 = ggarrange(plotlist = list(p6, p7)
   , nrow = 2, align = 'v')
 cvPlt2 = annotate_figure(cvPlt2, top = text_grob('Glmnet cross-validation'))
 
-
 glmnetSumm = pltGlmnet[
  , .(params = lambda
      , nGenes
@@ -354,6 +349,7 @@ glmnetSumm = pltGlmnet[
      , model = 'glmnet')]
 pLambdas = glmnetSumm$params[c(65, 77)]
 
+#comparing mae and ngenes between zeitzeiger and glmnet
 mdlSumm = rbind(zzSumm, glmnetSumm)
 
 p8 = ggplot(data = mdlSumm[nGenes < 60]) +
@@ -366,7 +362,7 @@ p8 = ggplot(data = mdlSumm[nGenes < 60]) +
   xlab('MAE (hours)') +
   ggtitle('MAE vs number of genes')
   
-
+# combining glmnet, zeitzeiger cv plots
 cvPltFinal = ggarrange(plotlist = list(cvPlt, cvPlt2, p8)
   , ncol = 3, align = 'v')
 ggexport(cvPltFinal, filename = file.path(outputFolder, 'bloodCCD_cv.pdf')
@@ -385,7 +381,7 @@ coefFig = ggarrange(p5, pGlmnetCoef, nrow = 2)
 ggexport(coefFig, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf')
   , width = 16, height = 20, units = 'in', dpi = 500)
 
-# genes for time courses
+# glmnet genes for time courses
 glmnetTimeCourseDt = getTimeCourseDt(emat, sm, unique(geneSummGlmnet$gene))
 
 pGlmnetTimeCourse = plotTimeCourse(glmnetTimeCourseDt) +

@@ -1,4 +1,4 @@
-getCormat = function(e, genes) {
+getCormat = function(e, genes, entrezID = FALSE) {
   
   genes = unique(genes)
   
@@ -6,9 +6,11 @@ getCormat = function(e, genes) {
     emat = exprs(e)
   } else { emat = e }
   
-  rownames(emat) = as.character(
-    lookUp(rownames(emat), 'org.Hs.eg', 'SYMBOL', load = TRUE)
-    )
+  if (!isTRUE(entrezID)) {
+    rownames(emat) = as.character(
+      lookUp(rownames(emat), 'org.Hs.eg', 'SYMBOL', load = TRUE)
+      )
+  }
   cormat = cor(t(emat)[, genes], method = 'spearman')
   
   return(cormat)

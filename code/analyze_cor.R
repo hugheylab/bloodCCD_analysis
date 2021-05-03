@@ -319,3 +319,9 @@ pCcd = ggplot(data = ccdDt) +
 
 ggsave(filename = file.path(outputFolder, 'ccd_plot.pdf'), pCcd 
   , height = 12, width = 12, units = 'in')
+
+#saving glmnet correlations
+ref = getCormat(emat, unique(glmnetCoefs$gene), entrezID = TRUE)
+diag(ref) = NA
+qsave(ref, file.path(dataFolder, 'result_blood_ref.qs'))
+saveRDS(ref, file.path(dataFolder, 'result_blood_ref.rds'))
