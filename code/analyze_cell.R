@@ -4,6 +4,7 @@ library(qs)
 library(cba)
 library(ggpubr)
 library(patchwork)
+theme_set(theme_bw(base_size = 20))
 
 codeFolder = 'code'
 dataFolder = 'data'
@@ -17,20 +18,18 @@ glmnetGenes = unique(glmnetCor$gene1)
 #monaco
 cellDataMonaco = fread(file.path(dataFolder, 'rna_blood_cell_monaco.tsv.gz'))
 cellDataMonaco = processCellData(cellDataMonaco, glmnetGenes)
-
-monacoPlt =  plotCellData(cellDataMonaco)
+cellDataMonaco[, source := 'Monaco']
 
 #schmiedel
 cellDataSchmiedel = fread(file.path(dataFolder, 'rna_blood_cell_schmiedel.tsv.gz'))
 cellDataSchmiedel = processCellData(cellDataSchmiedel, glmnetGenes)
+cellDataSchmiedel[, source := 'Schmiedel']
 
-schmiedelPlt =  plotCellData(cellDataSchmiedel)
+cellData = rbind(cellDataMonaco, cellDataSchmiedel)
+pCellData = plotCellData(cellData, source, scales = 'free_y', ncol = 1)
 
-
-cellFig = monacoPlt / schmiedelPlt
-cellFig = cellFig + plot_annotation(tag_levels = 'A')
-ggexport(cellFig, filename = file.path(outputFolder, 'cell_heatmap.pdf')
+ggexport(pCellData, filename = file.path(outputFolder, 'cell_heatmap.pdf')
   , width = 14, height = 18, units = 'in')
-ggexport(cellFig, filename = file.path(outputFolder, 'cell_heatmap.png')
-         , width = 1080, height = 720)
+ggexport(pCellData, filename = file.path(outputFolder, 'fig4.png')
+         , width = 1400, height = 1080)
 

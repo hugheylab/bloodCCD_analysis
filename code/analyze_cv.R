@@ -316,8 +316,8 @@ ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf'),
 
 suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], 
                      ncol = 2, param)
-ggsave(filename = file.path(outputFolder, 'suppFig1.png'), 
-       plot = suppFig1, width = 18, height = 12, units = 'in')
+ggexport(filename = file.path(outputFolder, 'suppFig1.png'), 
+       plot = suppFig1, width = 900, height = 600)
 
 coefsFinal = pZzCoefs | pGlmnetCoef
 ggexport(coefsFinal, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf'), 

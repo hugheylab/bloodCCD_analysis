@@ -8,7 +8,6 @@ plotCoefs = function(coefDt, ..., ncol = NULL, nrow = NULL) {
     coord_flip() +
     xlab('Gene') +
     ylab('Coefficient') +
-    theme(axis.text.y = element_text(size = 8))
   
   if (!missing(...)) {
     p = p + 

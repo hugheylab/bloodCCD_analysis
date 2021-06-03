@@ -231,7 +231,7 @@ pGlmnetStudyCondList = foreach(lam = unique(glmnetStudyCormat$lambda)) %dopar% {
           text = element_text(size = 8))
   
   return(p)}
-pGlmnetStudyCond = ggarrange(plotlist = pGlmnetCondList, nrow = 2)
+pGlmnetStudyCond = ggarrange(plotlist = pGlmnetStudyCondList, nrow = 2)
 ggexport(pGlmnetStudyCond, filename = file.path(outputFolder, 'glmnet_study_cond_corr.pdf')
   , width = 18, height = 18, units = 'in')
 
@@ -309,7 +309,7 @@ grid.newpage()
 grid.draw(vennObj)
 dev.off()
 
-suppFig3 = venn.diagram(
+suppFig2 = venn.diagram(
   list(vennDt[!is.na(glmnet_lambda_0.1101)]$glmnet_lambda_0.1101, 
        vennDt[!is.na(glmnet_lambda_0.1923)]$glmnet_lambda_0.1923, 
        vennDt[!is.na(zeitzeiger_2017)]$zeitzeiger_2017, 
@@ -318,12 +318,12 @@ suppFig3 = venn.diagram(
   category.names = c('lambda_0.1101', 'lambda_0.1923', 'zeitzeiger_2017', 
                      'sumabsv_2', 'sumabsv_3'), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
-  cat.cex = 1, cat.default.pos = 'outer', main.fontfamily = 'sans', 
-  filename = NULL)
+  cat.cex = 2,  main.fontfamily = 'sans', cat.pos = c(0, 0, 300, 220, 160),
+  cat.dist = c(0.2, 0.2, 0.3, 0.2, 0.225), cex = 3, filename = NULL)
 
-png(file = file.path(outputFolder, 'suppFig3.png'), height = 1080, width = 1280)
+png(file = file.path(outputFolder, 'suppFig2.png'), height = 1080, width = 1280)
 grid.newpage()
-grid.draw(suppFig3)
+grid.draw(suppFig2)
 dev.off()
 
 #study CCDs
@@ -445,11 +445,10 @@ ggexport(filename = file.path(outputFolder, 'fig5.png')
 #getting peak phase
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
-controlMetadata = sampleMetadata[condition %in% controlConds]
+sm = sampleMetadata[condition %in% controlConds]
 
 glmnetGenes = unique(glmnetCoefs[lambda == min(lambda), gene])
 
-sm = merge(controlMetadata, foldIds, by = c('study', 'subject'))
 noClock = sm[is.na(clock_time), sample]
 sm = sm[!is.na(clock_time)]
 sm[, time := ztFrac * 24]
@@ -485,9 +484,9 @@ pPeakPhase = ggplot(glmnetRhyStats) +
 #getting time courses
 glmnetTimeCourseDt = getTimeCourseDt(emat, sm, glmnetGenes)
 glmnetTimeCourseDt[, gene := factor(gene, levels = unique(glmnetCormat$gene1))]
-suppFig4 = plotTimeCourse(glmnetTimeCourseDt)
-ggexport(filename = file.path(outputFolder, 'suppFig4.png'), suppFig4 
-         , height = 1280, width = 720)
+suppFig3 = plotTimeCourse(glmnetTimeCourseDt)
+ggexport(filename = file.path(outputFolder, 'suppFig3.png'), suppFig4 
+         , height = 1280, width = 1680)
 
 sampGenes = c('HNRNPDL', 'PROK2', 'QPRT')
 pGlmnetTimeCourseSamp = plotTimeCourse(glmnetTimeCourseDt[gene %in% sampGenes]
