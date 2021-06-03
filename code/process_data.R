@@ -5,7 +5,7 @@ library(doParallel)
 library(Biobase)
 library(qs)
 library(ggplot2)
-
+theme_set(theme_bw())
 
 dataFolder= 'data'
 
@@ -18,8 +18,8 @@ studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
 
 sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
-controlConds = c('Sleep Extension', 'In phase with respect to melatonin'
-  , 'baseline')
+controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
+                 'baseline')
 controlMetadata = sampleMetadata[condition %in% controlConds]
 
 esetList = getStudyDataList(parentFolderPath, studyMetadata)
@@ -68,11 +68,8 @@ eDt = foreach(eset = cbEsetList, .combine = rbind) %do% {
   setnames(ematDt, 'N', 'expression')
   return(ematDt)}
 
-eDt = merge(controlMetadata[, .(study, subject, sample)]
-  , eDt, by = 'sample')
-
-
-theme_set(theme_bw())
+eDt = merge(controlMetadata[, .(study, subject, sample)], 
+            eDt, by = 'sample')
 
 #gene-level plots
 p1 = ggplot(eDt, aes(x = gene, y = expression)) +

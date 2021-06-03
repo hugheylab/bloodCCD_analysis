@@ -53,7 +53,7 @@ cbEsetList = foreach(eset = scaledEsetList) %do% {
   
   return(cbEset)}
 names(cbEsetList) = names(esetList)
-qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm__pert_esetList.qs'))
+qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm_pert_esetList.qs'))
 
 #cross-study normalization
 ematList = extractExpressionData(cbEsetList, sampleMetadata)

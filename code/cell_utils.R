@@ -19,19 +19,20 @@ processCellData = function(cellData, genes) {
 
   cellDataScaled[, cell := factor(cell, levels = names(opt)[opt])]
   
-  return(cellDataScaled)
-  
-}
+  return(cellDataScaled)}
 
-plotCellData = function(cellData) {
+plotCellData = function(cellData, ..., scales = NULL, ncol = NULL,
+                        nrow = NULL) {
   
-  p = ggplot(cellData, aes(x = cell, y = gene, fill = tpm)) +
+  p = ggplot(cellData, aes(x = gene, y = cell, fill = tpm)) +
     geom_tile(color = 'white') +
     scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white' 
                          , midpoint = 0, space = 'Lab', name = 'scaled tpm') +
-    xlab('Cell') +
-    ylab('Gene') +
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 8)
-          , axis.text.y = element_text(size = 6))
+    xlab('Gene') +
+    ylab('Cell type') +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
   
-}
+  if (!missing(...)) {
+    p = p + facet_wrap(vars(...), scales = scales, nrow = nrow, ncol = ncol)}
+  
+  return(p)}
