@@ -456,7 +456,8 @@ sm[, time := ztFrac * 24]
 
 xClock = t(emat)[sm$sample, ]
 fit = getModelFit(t(xClock), sm)
-mFit = getMashFit(fit, covMethod = 'data-driven')
+mFit = getPosteriorFit(fit, covMethod = 'data-driven')
+mSamps = getPosteriorSamples(mFit)
 rhyStats = getRhythmStats(mFit, coefType = 'posterior_mean')
 glmnetRhyStats = rhyStats[feature %in% glmnetGenes]
 
