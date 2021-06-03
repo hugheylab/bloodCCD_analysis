@@ -13,10 +13,10 @@ parentFolderPath = file.path(dataFolder, 'expression_data')
 
 discoveryStudyNames = c('GSE39445', 'GSE48113', 'GSE56931')
 
-studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
+studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
 
-sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
+sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
@@ -123,5 +123,5 @@ p7 = ggplot(ematDiscoveryDt, aes(x = subject, y = expression)) +
 p8 = ggplot(ematDiscoveryDt, aes(x = study, y = expression)) +
   geom_boxplot()
 
-qsave(cbEsetList, file = file.path('data', 'circadian_human_blood.qs'))
-qsave(ematDiscovery, file = file.path('data', 'circadian_human_blood_emat.qs'))
+qsave(cbEsetList, file = file.path(dataFolder, 'circadian_human_blood.qs'))
+qsave(ematDiscovery, file = file.path(dataFolder, 'circadian_human_blood_emat.qs'))

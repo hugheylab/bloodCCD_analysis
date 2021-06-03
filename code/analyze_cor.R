@@ -26,21 +26,21 @@ dataFolder = file.path('data')
 
 source(file.path(codeFolder, 'cor_utils.R'))
 
-studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
+studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
 
-sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
+sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
 
 #loading control data
-ematPath = file.path('data', 'circadian_human_blood_emat.qs')
+ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
 emat = qread(ematPath)
 
-esetPath = file.path('data', 'circadian_human_blood.qs')
+esetPath = file.path(dataFolder, 'circadian_human_blood.qs')
 eset = qread(esetPath)
 
 #loading perturbation data
-esetPerturbPath = file.path('data', 'subj_norm_pert_esetList.qs')
+esetPerturbPath = file.path(dataFolder, 'subj_norm_pert_esetList.qs')
 esetPerturb = qread(esetPerturbPath)
 
 # ematPerturbPath = file.path('data', 'perturb_emat.qs')
@@ -102,6 +102,7 @@ glmnetCormat = foreach(lam = unique(glmnetCoefs$lambda)
     gnetCormatSort[, lambda := lam]
     
     return(gnetCormatSort)}
+qsave(glmnetCormat, file = file.path(dataFolder, 'glmnet_cor_dt.qs'))
 
 glmnetHeatmap = plotHeatmap(glmnetCormat, lambda) +
   ggtitle(bquote('Overall correlations, genes selected by glmnet, by '~lambda)) +

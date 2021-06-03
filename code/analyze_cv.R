@@ -24,13 +24,13 @@ dataFolder = file.path('data')
 source(file.path(codeFolder, 'cv_utils.R'))
 
 #loading data
-studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
+studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
 
-sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
+sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
 
-ematPath = file.path('data', 'circadian_human_blood_emat.qs')
+ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
 emat = qread(ematPath)
 
 timeMax = 24
