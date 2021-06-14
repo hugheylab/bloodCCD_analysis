@@ -15,8 +15,9 @@ library(VennDiagram)
 library(RColorBrewer)
 library(deltaccd)
 library(patchwork)
-limoRhydePath = file.path('~', 'Documents', 'Work', 'limorhyde2')
-devtools::load_all(limoRhydePath)
+# library(limorhyde2)
+limorhyde2Path = '../limorhyde2/'
+devtools::load_all(limorhyde2Path)
 
 theme_set(theme_bw(base_size = 25))
 
@@ -91,8 +92,8 @@ zzHeatmap =  plotHeatmap(zzCormat, sumabsv) +
         text = element_text(size = 16))
   
 #glmnet
-glmnetCormat = foreach(lam = unique(glmnetCoefs$lambda)
-  , .combine = rbind) %dopar% {
+glmnetCormat = foreach(lam = unique(glmnetCoefs$lambda), 
+                       .combine = rbind) %dopar% {
     
     vCo = glmnetCoefs[lambda == lam]
     
@@ -220,8 +221,9 @@ fig3 =  plotHeatmap(
                     .SD[lambda == min(lambda)]], 
   study, ncol = 2, nrow = 2) +
   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1))
-ggexport(fig3, filename = file.path(outputFolder, 'fig3.png'), 
-         width= 1920, height = 1920)
+corLevels = levels(glmnetCormat$gene1)
+ggexport(fig3, filename = file.path(outputFolder, 'fig3.pdf'), 
+         width= 19, height = 19, units = 'in')
 
 
 #### perturb vs control
@@ -299,13 +301,13 @@ vennObj = venn.diagram(
        vennDt[!is.na(zeitzeiger_2017)]$zeitzeiger_2017, 
        vennDt[!is.na(zeitzeiger_sumabsv_2)]$zeitzeiger_sumabsv_2, 
        vennDt[!is.na(zeitzeiger_sumabsv_3)]$zeitzeiger_sumabsv_3), 
-  category.names = c('lambda_0.1101', 'lambda_0.1923', 'zeitzeiger_2017', 
-                     'sumabsv_2', 'sumabsv_3'), 
+  category.names = c('enet_lambda_0.1101', 'enet_lambda_0.1923', 'zeitzeiger_2017', 
+                     'zeitzeiger_sumabsv_2', 'zeitzeiger_sumabsv_3'), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
   cat.cex = 1, cat.default.pos = 'outer', main.fontfamily = 'sans', 
   main = 'Gene overlap between models', filename = NULL)
 
-pdf(file = file.path(outputFolder, 'gene_venn.pdf'), height = 14, width = 14)
+pdf(file = file.path(outputFolder, 'gene_venn.pdf'), height = 1400, width = 1400)
 grid.newpage()
 grid.draw(vennObj)
 dev.off()
@@ -316,13 +318,13 @@ suppFig2 = venn.diagram(
        vennDt[!is.na(zeitzeiger_2017)]$zeitzeiger_2017, 
        vennDt[!is.na(zeitzeiger_sumabsv_2)]$zeitzeiger_sumabsv_2, 
        vennDt[!is.na(zeitzeiger_sumabsv_3)]$zeitzeiger_sumabsv_3), 
-  category.names = c('lambda_0.1101', 'lambda_0.1923', 'zeitzeiger_2017', 
-                     'sumabsv_2', 'sumabsv_3'), 
+  category.names = c('enet_lambda_0.1101', 'enet_lambda_0.1923', 'zeitzeiger_2017', 
+                     'zeitzeiger_sumabsv_2', 'zeitzeiger_sumabsv_3'), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
-  cat.cex = 2,  main.fontfamily = 'sans', cat.pos = c(0, 0, 300, 220, 160),
-  cat.dist = c(0.2, 0.2, 0.3, 0.2, 0.225), cex = 3, filename = NULL)
+  cat.cex = 6,  main.fontfamily = 'sans', cat.pos = c(0, 0, 300, 220, 160),
+  cat.dist = c(0.175, 0.2, 0.275, 0.2, 0.25), cex = 8, filename = NULL)
 
-png(file = file.path(outputFolder, 'suppFig2.png'), height = 1080, width = 1280)
+pdf(file = file.path(outputFolder, 'suppFig2.pdf'), width = 72, height = 72)
 grid.newpage()
 grid.draw(suppFig2)
 dev.off()
@@ -424,24 +426,24 @@ pGlmnetCcd = ggplot(data = glmnetCcdDt) +
   geom_point(aes(x = cond, y = ccd, fill = cond)
     , position = position_dodge(width = 0.3), shape = 21, alpha = 0.5
     , size = 6) +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-        axis.title.x = element_blank()) +
+  coord_flip() +
+  theme(legend.position = 'none') +
   labs(fill = 'Condition') +
   scale_fill_brewer(palette = 'Dark2', direction = 1) +
   xlab('Condition') +
   ylab('CCD')
 
-pGlmnetStudyPerturb = plotHeatmap(glmnetStudyCormat[condition == 'perturb'
+pGlmnetStudyPerturb = plotHeatmap(glmnetCormatFigDt[condition == 'perturb'
                                                     & lambda == min(lambda)], 
                                   study, scales = 'fixed', ncol = 2) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1),
-        text = element_text(size = 19))
+  theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1, size = 14),
+        axis.text.y = element_text(size = 14))
 
 fig5 = pGlmnetCcd + pGlmnetStudyPerturb +
   plot_annotation(tag_levels = 'A') + 
-  plot_layout(ncol = 2, widths = c(1, 30))
-ggexport(filename = file.path(outputFolder, 'fig5.png')
-         , plot = fig5, width = 1700, height = 1300)
+  plot_layout(ncol = 1, heights = c(1, 5))
+ggexport(filename = file.path(outputFolder, 'fig5.pdf'), 
+         plot = fig5, width = 22, height = 22, units = 'in')
 
 #getting peak phase
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
@@ -458,21 +460,13 @@ xClock = t(emat)[sm$sample, ]
 fit = getModelFit(t(xClock), sm)
 mFit = getPosteriorFit(fit, covMethod = 'data-driven')
 mSamps = getPosteriorSamples(mFit)
-rhyStats = getRhythmStats(mFit, coefType = 'posterior_mean')
-glmnetRhyStats = rhyStats[feature %in% glmnetGenes]
+rhyStats = getRhythmStats(mFit, fitType = 'posterior_mean', feature = glmnetGenes)
 
-glmnetRhyStats[, gene := lookUp(feature, 'org.Hs.eg', 'SYMBOL', load = TRUE)]
-glmnetMaxLambda = glmnetCoefs[, .SD[which.max(lambda), .(gene_sym, lambda)],
-                              gene]
-glmnetRhyStats = merge(glmnetRhyStats, glmnetMaxLambda,
-                       by.x = 'feature', by.y = 'gene', all.x = TRUE) 
-glmnetRhyStats[lambda == max(lambda), lambda := 21]
-glmnetRhyStats[lambda == min(lambda), lambda := 41]
-glmnetRhyStats[, lambda := as.factor(lambda)]
-glmnetRhyStats[, gene_fac := factor(gene, levels = .SD[order(peak_phase), gene])]
+rhyStats[, gene := lookUp(feature, 'org.Hs.eg', 'SYMBOL', load = TRUE)]
+rhyStats[, gene_fac := factor(gene, levels = .SD[order(peak_phase), gene])]
 
-pPeakPhase = ggplot(glmnetRhyStats) +
-  geom_point(aes(x = peak_phase, y = gene_fac, shape = lambda)
+pPeakPhase = ggplot(rhyStats) +
+  geom_point(aes(x = peak_phase, y = gene_fac)
              , size = 4) +
   scale_x_continuous(breaks = seq(0, 24, by = 4)) +
   theme(panel.grid.major.x = element_blank()
@@ -480,25 +474,25 @@ pPeakPhase = ggplot(glmnetRhyStats) +
         , panel.grid.major.y = element_line(color = 'lightgrey', linetype = 'dotted'
                                             , size = 1)) +
   labs(shape = 'Gene set') +
-  xlab('Peak phase (hours)') + 
+  xlab('Peak phase (h)') + 
   ylab('Gene')
 
 #getting time courses
 glmnetTimeCourseDt = getTimeCourseDt(emat, sm, glmnetGenes)
-glmnetTimeCourseDt[, gene := factor(gene, levels = unique(glmnetCormat$gene1))]
-suppFig3 = plotTimeCourse(glmnetTimeCourseDt)
-ggexport(filename = file.path(outputFolder, 'suppFig3.png'), suppFig4 
-         , height = 1280, width = 1680)
+glmnetTimeCourseDt[, gene := factor(gene, levels = rev(levels(rhyStats$gene_fac)))]
+pTimeCourse = plotTimeCourse(glmnetTimeCourseDt, ncol = 5, breaks = 6)
+ggexport(filename = file.path(outputFolder, 'suppFig3.pdf'), pTimeCourse
+         , height = 24, width = 16, units = 'in')
 
-sampGenes = c('HNRNPDL', 'PROK2', 'QPRT')
+sampGenes = c('HNRNPDL', 'NR1D2', 'PER2')
 pGlmnetTimeCourseSamp = plotTimeCourse(glmnetTimeCourseDt[gene %in% sampGenes]
                                        , ncol = 1)
 
-fig2 = peakPhasePlt + pGlmnetTimeCourseSamp +
+fig2 = pPeakPhase + pGlmnetTimeCourseSamp +
   plot_annotation(tag_levels = 'A') +
   plot_layout(ncol = 2, widths = c(2, 1))
-ggexport(filename = file.path(outputFolder, 'fig2.png')
-         , plot = fig2, width = 1280, height = 900)
+ggexport(filename = file.path(outputFolder, 'fig2.pdf')
+         , plot = fig2, width = 28, height = 16, units = 'in')
 
 #saving glmnet correlations
 ref = getCormat(emat, glmnetGenes, entrezID = TRUE)

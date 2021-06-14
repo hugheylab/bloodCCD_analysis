@@ -14,14 +14,14 @@ getTimeCourseDt = function(emat, sm, genes) {
   
   return(timeCourseDt)}
 
-plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL) {
+plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL, breaks = 4) {
   
   p = ggplot(timeCourseDt, aes(x = ztFrac*24, y = expression, color = study)) +
     geom_point(shape = 1) +
-    ylab('Expression') +
-    xlab('Hour of day') +
+    ylab('Expression (norm.)') +
+    xlab('Time of day (h)') +
     facet_wrap(vars(gene), scales = 'free_y', ncol = ncol, nrow = nrow) +
-    scale_x_continuous(breaks = seq(0, 24, by = 4), limits = c(0, 24))
+    scale_x_continuous(breaks = seq(0, 24, by = breaks), limits = c(0, 24))
   
   return(p)}
 

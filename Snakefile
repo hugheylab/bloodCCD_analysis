@@ -8,10 +8,6 @@ rule all:
     'data/circadian_human_blood.qs',
     'data/circadian_human_blood_emat.qs'
     
-rule install_packages:
-  input:
-    'install_packages.R'
-
 rule process_data:
   input:
     'code/process_data.R',
