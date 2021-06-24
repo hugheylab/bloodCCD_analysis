@@ -7,6 +7,12 @@ rule all:
     'data/metadata',
     'data/circadian_human_blood.qs',
     'data/circadian_human_blood_emat.qs'
+
+rule install_packages:
+  input:
+    'code/install_packages.R'
+  shell:
+    'Rscript {input[0]}'
     
 rule process_data:
   input:
