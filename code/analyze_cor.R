@@ -15,9 +15,7 @@ library(VennDiagram)
 library(RColorBrewer)
 library(deltaccd)
 library(patchwork)
-# library(limorhyde2)
-limorhyde2Path = '../limorhyde2/'
-devtools::load_all(limorhyde2Path)
+library(limorhyde2)
 
 theme_set(theme_bw(base_size = 25))
 
