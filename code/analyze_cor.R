@@ -146,7 +146,7 @@ ggexport(combinedHeatmap,
 #zeitzeiger
 zzStudyCormat = foreach(i = 1:length(eset)
   , .combine = rbind) %:% 
-  foreach(cond = c('control', 'perturb'), .combine = rbind) %dopar% {
+  foreach(cond = c('control', 'perturb'), .combine = rbind) %do% {
     
     if(cond == 'control') {
       esetTmp = eset[[i]]
@@ -178,7 +178,7 @@ zzStudyHeatmap = plotHeatmap(zzStudyCormat[condition == 'control'],
 #glmnet
 glmnetStudyCormat = foreach(i = 1:length(eset)
   , .combine = rbind) %:% 
-  foreach(cond = c('control', 'perturb'), .combine = rbind) %dopar% {
+  foreach(cond = c('control', 'perturb'), .combine = rbind) %do% {
               
   if(cond == 'control') {
    
