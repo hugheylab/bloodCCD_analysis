@@ -22,9 +22,11 @@ rule process_data:
 
 rule load_perturbations:
   input:
+    'code/load_perturbations.R',
     'data/expression_data',
     'data/metadata',
   output:
+    'data/subj_norm_pert_esetList.qs',
     'data/perturb_esetList.qs',
     'data/perturb_emat.qs'
   shell:
