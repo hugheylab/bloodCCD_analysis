@@ -34,7 +34,6 @@ rule load_perturbations:
 
 rule analyze_cv:
   input:
-    'code/cv_utils.R',
     'code/analyze_cv.R',
     'data/metadata',
     'data/circadian_human_blood_emat.qs'
@@ -54,7 +53,6 @@ rule analyze_cv:
 
 rule analyze_cor:
   input:
-    'code/cor_utils.R',
     'code/analyze_cor.R',
     'data/metadata',
     'data/circadian_human_blood_emat.qs',
@@ -84,7 +82,6 @@ rule analyze_cor:
 
 rule analyze_cell:
   input:
-    'code/cell_utils.R',
     'code/analyze_cell',
     'data/glmnet_cor_dt.qs',
     'data/rna_blood_cell_monaco.tsv.gz',

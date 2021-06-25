@@ -7,10 +7,11 @@ plotCoefs = function(coefDt, ..., ncol = NULL, nrow = NULL) {
     scale_y_continuous(expand = c(0.015, 0)) +
     coord_flip() +
     xlab('Gene') +
-    ylab('Coefficient') +
+    ylab('Coefficient')
   
   if (!missing(...)) {
     p = p + 
       facet_wrap(vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
   
   return(p)}
+
