@@ -29,7 +29,7 @@ getCormat = function(e, genes, entrezID = FALSE) {
   
   genes = unique(genes)
   
-  if(class(e) == 'ExpressionSet') {
+  if(inherits(e, 'ExpressionSet')) {
     emat = exprs(e)
   } else { emat = e }
   
@@ -39,7 +39,7 @@ getCormat = function(e, genes, entrezID = FALSE) {
     while(isTRUE(e)) {
       geneNames = try(as.character(
         lookUp(rownames(cormat), 'org.Hs.eg', 'SYMBOL', load = TRUE)))
-      if (class(geneNames) == 'try-error') {
+      if (inherits(geneNames, 'try-error')) {
         e = TRUE
       } else {
         e = FALSE
@@ -56,17 +56,14 @@ sortCormat = function (cormat) {
   opt = order.optimal(distmat, hc)$order
   ord = unique(colnames(cormat[opt, opt]))
   
-  cormatDt = as.data.table(cormat, 
-                           keep.rownames = 'gene1')
-  cormatDt = melt(cormatDt, 
-                  variable.name = 'gene2', 
-                  value.name = 'rho')
+  cormatDt = as.data.table(cormat, keep.rownames = 'gene1')
+  cormatDt = melt(cormatDt, id.vars = 'gene1', 
+                  variable.name = 'gene2', value.name = 'rho')
     
-  cormatDt[, `:=`(gene1 = factor(gene1, levels = ord), 
-                  gene2 = factor(gene2, levels = ord))]
+  cormatDt[, gene1 := factor(gene1, levels = ord)]
+  cormatDt[, gene1 := factor(gene1, levels = ord)]
   
-  cormatDt[gene1 == gene2, 
-           rho := NA]
+  cormatDt[gene1 == gene2, rho := NA]
   
   return(cormatDt)}
 

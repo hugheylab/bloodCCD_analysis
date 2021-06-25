@@ -130,6 +130,7 @@ combinedCors = rbind(combinedCors,
                      cormat2017[, .(gene1, gene2, rho, 
                                     params = '2017', 
                                     model = 'zeitzeiger')])
+
 setorderv(combinedCors, cols = c('gene1', 'gene2', 'model', 'params'))
 
 
@@ -457,8 +458,7 @@ sm[, time := ztFrac * 24]
 xClock = t(emat)[sm$sample, ]
 fit = getModelFit(t(xClock), sm)
 mFit = getPosteriorFit(fit, covMethod = 'data-driven')
-mSamps = getPosteriorSamples(mFit)
-rhyStats = getRhythmStats(mFit, fitType = 'posterior_mean', feature = glmnetGenes)
+rhyStats = getRhythmStats(mFit, fitType = 'posterior_mean', features = glmnetGenes)
 
 rhyStats[, gene := lookUp(feature, 'org.Hs.eg', 'SYMBOL', load = TRUE)]
 rhyStats[, gene_fac := factor(gene, levels = .SD[order(peak_phase), gene])]
@@ -483,8 +483,8 @@ ggexport(filename = file.path(outputFolder, 'suppFig3.pdf'), pTimeCourse
          , height = 24, width = 16, units = 'in')
 
 sampGenes = c('HNRNPDL', 'NR1D2', 'PER2')
-pGlmnetTimeCourseSamp = plotTimeCourse(glmnetTimeCourseDt[gene %in% sampGenes]
-                                       , ncol = 1)
+pGlmnetTimeCourseSamp = plotTimeCourse(glmnetTimeCourseDt[gene %in% sampGenes], 
+                                       ncol = 1)
 
 fig2 = pPeakPhase + pGlmnetTimeCourseSamp +
   plot_annotation(tag_levels = 'A') +
@@ -496,7 +496,6 @@ ggexport(filename = file.path(outputFolder, 'fig2.pdf')
 ref = getCormat(emat, glmnetGenes, entrezID = TRUE)
 diag(ref) = NA
 qsave(ref, file.path(dataFolder, 'result_blood_ref.qs'))
-saveRDS(ref, file.path(dataFolder, 'result_blood_ref.rds'))
 
 refGenes = unique(glmnetCoefs[lambda == min(lambda),
                               .(entrez_hs = gene, symbol_hs = gene_sym)])
