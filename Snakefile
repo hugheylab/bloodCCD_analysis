@@ -25,7 +25,6 @@ rule load_perturbations:
     'data/expression_data',
     'data/metadata',
   output:
-    'data/subj_norm_pert_esetList.qs',
     'data/perturb_esetList.qs',
     'data/perturb_emat.qs'
   shell:
