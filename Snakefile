@@ -36,7 +36,8 @@ rule analyze_cv:
   input:
     'code/analyze_cv.R',
     'data/metadata',
-    'data/circadian_human_blood_emat.qs'
+    'data/circadian_human_blood_emat.qs',
+    'data/genes2017.qs'
   output:
     'output/zeitzeiger_cv.pdf',
     'data/zeitzeiger_coefs.qs',
