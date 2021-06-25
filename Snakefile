@@ -8,12 +8,6 @@ rule all:
     'data/circadian_human_blood.qs',
     'data/circadian_human_blood_emat.qs'
 
-rule install_packages:
-  input:
-    'code/install_packages.R'
-  shell:
-    'Rscript {input[0]}'
-    
 rule process_data:
   input:
     'code/process_data.R',
@@ -33,7 +27,7 @@ rule load_perturbations:
   output:
     'data/subj_norm_pert_esetList.qs',
     'data/perturb_esetList.qs',
-    'data/perturb_emta.qs'
+    'data/perturb_emat.qs'
   shell:
     'Rscript {input[0]}'
 
