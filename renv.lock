@@ -1477,13 +1477,6 @@
       "Repository": "CRAN",
       "Hash": "339e60ca7a6bd8bff091cb9f77dd4412"
     },
-    "stringi": {
-      "Package": "stringi",
-      "Version": "1.6.2",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "9df5e6f9a7fa11b84adf0429961de66a"
-    },
     "stringr": {
       "Package": "stringr",
       "Version": "1.4.0",
