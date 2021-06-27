@@ -26,24 +26,25 @@ plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL, breaks = 4) {
   return(p)}
 
 getCormat = function(e, genes, entrezID = FALSE) {
-  
+
   genes = unique(genes)
-  
+ 
   if(inherits(e, 'ExpressionSet')) {
     emat = exprs(e)
   } else { emat = e }
   
   cormat = cor(t(emat)[, genes], method = 'spearman')
   
+  err = TRUE
   if (!isTRUE(entrezID)) {
-    while(isTRUE(e)) {
+    while(isTRUE(err)) {
       geneNames = try(as.character(
         lookUp(rownames(cormat), 'org.Hs.eg', 'SYMBOL', load = TRUE)))
       if (inherits(geneNames, 'try-error')) {
-        e = TRUE
+        err = TRUE
       } else {
-        e = FALSE
-        rownames(cormat) = geneNames}}
+        rownames(cormat) = geneNames
+        err = FALSE}}
       
     colnames(cormat) = rownames(cormat)}
   
