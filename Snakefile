@@ -82,12 +82,12 @@ rule analyze_cor:
 
 rule analyze_cell:
   input:
-    'code/analyze_cell',
+    'code/analyze_cell.R',
     'data/glmnet_cor_dt.qs',
     'data/rna_blood_cell_monaco.tsv.gz',
     'data/rna_blood_cell_schmiedel.tsv.gz'
   output:
     'output/cell_heatmap.pdf',
-    'output/fig4.png'
+    'output/fig4.pdf'
   shell:
     'Rscript {input[0]}'
