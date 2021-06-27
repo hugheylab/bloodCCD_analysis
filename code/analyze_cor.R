@@ -395,7 +395,7 @@ glmnetCcdDt = foreach(cond = c('control', 'perturbation'),
                       .combine = rbind) %dopar% {
   
   genes = unique(combinedCors[
-    params == sort(unique((combinedCors[model == 'glmnet']$params))), gene1])
+    params == sort(unique((combinedCors[model == 'glmnet']$params))[1]), gene1])
   
   ref = emat 
   
