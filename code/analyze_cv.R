@@ -302,7 +302,7 @@ ggexport(pCvFinal, filename = file.path(outputFolder, 'bloodCCD_cv.pdf'),
 fig1 = pZzMae + pGlmnetMae + pZzVsGlmnet +
   plot_layout(ncol = 2, widths = c(1.25, 2)) +
   plot_annotation(tag_levels = 'A')
-ggexport(fig1, filename = file.path(outputFolder, 'fig1.png'), 
+ggexport(fig1, filename = file.path(outputFolder, 'fig1.pdf'), 
          width = 1080, height = 720)
 
 
@@ -316,7 +316,7 @@ ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf'),
 
 suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], 
                      ncol = 2, param)
-ggexport(filename = file.path(outputFolder, 'suppFig1.png'), 
+ggexport(filename = file.path(outputFolder, 'suppFig1.pdf'), 
        plot = suppFig1, width = 900, height = 600)
 
 coefsFinal = pZzCoefs | pGlmnetCoef

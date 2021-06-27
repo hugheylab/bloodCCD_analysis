@@ -44,10 +44,10 @@ rule analyze_cv:
     'output/gene_zeitzeiger_coefs.pdf',
     'output/glmnet_cv.pdf',
     'output/bloodCCD_cv.pdf',
-    'output/fig1.png',
+    'output/fig1.pdf',
     'data/glmnet_coefs.qs',
     'output/gene_glmnet_coefs.pdf',
-    'output/suppFig1.png',
+    'output/suppFig1.pdf',
     'output/bloodCCD_coefs.pdf'
   shell:
     'Rscript {input[0]}'
@@ -66,15 +66,15 @@ rule analyze_cor:
     'data/glmnet_cor_dt.qs',
     'output/overall_correlations.pdf',
     'output/study_cors_glmnet.pdf',
-    'output/fig3.png',
+    'output/fig3.pdf',
     'output/glmnet_study_cond_corr.pdf',
     'output/study_correlations.pdf',
     'output/gene_venn.pdf',
-    'output/suppFig2.png',
+    'output/suppFig2.pdf',
     'output/ccd_plot.pdf',
-    'output/fig5.png',
-    'output/suppFig3.png',
-    'output/fig2.png',
+    'output/fig5.pdf',
+    'output/suppFig3.pdf',
+    'output/fig2.pdf',
     'data/result_blood_ref.qs',
     'data/genes_blood.csv'
   shell:
