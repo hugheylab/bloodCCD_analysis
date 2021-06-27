@@ -35,18 +35,10 @@ getCormat = function(e, genes, entrezID = FALSE) {
   
   cormat = cor(t(emat)[, genes], method = 'spearman')
   
-  err = TRUE
-  if (!isTRUE(entrezID)) {
-    while(isTRUE(err)) {
-      geneNames = try(as.character(
-        lookUp(rownames(cormat), 'org.Hs.eg', 'SYMBOL', load = TRUE)))
-      if (inherits(geneNames, 'try-error')) {
-        err = TRUE
-      } else {
-        rownames(cormat) = geneNames
-        err = FALSE}}
-      
-    colnames(cormat) = rownames(cormat)}
+  geneNames = as.character(
+        lookUp(rownames(cormat), 'org.Hs.eg', 'SYMBOL', load = TRUE))
+  rownames(cormat) = geneNames
+  colnames(cormat) = rownames(cormat)
   
   return(cormat)}
 

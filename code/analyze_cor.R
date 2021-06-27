@@ -16,8 +16,10 @@ library(RColorBrewer)
 library(deltaccd)
 library(patchwork)
 library(limorhyde2)
+library(BiocParallel)
 
 theme_set(theme_bw(base_size = 25))
+id = ipcid()
 
 codeFolder = file.path('code')
 outputFolder = file.path('output')
@@ -76,7 +78,9 @@ zzCormat = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
   
   vCo = zzCoefs[sumabsv == absv]
  
+  ipclock(id)
   zCormat = getCormat(emat, vCo$gene)
+  ipcunlock(id)
   
   zCormatSort = sortCormat(zCormat)
   zCormatSort[, sumabsv := absv]
@@ -95,7 +99,9 @@ glmnetCormat = foreach(lam = unique(glmnetCoefs$lambda),
     
     vCo = glmnetCoefs[lambda == lam]
     
+    ipclock(id)
     gnetCormat = getCormat(emat, vCo$gene)
+    ipcunlock(id)
     
     gnetCormatSort = sortCormat(gnetCormat)
     gnetCormatSort[, lambda := lam]
@@ -159,7 +165,9 @@ zzStudyCormat = foreach(i = 1:length(eset)
                    
     vCo = zzCoefs[sumabsv == absv]
     
+    ipclock(id)
     zCormat = getCormat(ematTmp, vCo$gene)
+    ipcunlock(id)
     
     zCormatSort = sortCormat(zCormat)
     zCormatSort[
@@ -191,7 +199,9 @@ glmnetStudyCormat = foreach(i = 1:length(eset)
                    
     geneSummGnet = glmnetCoefs[lambda == lam]
                              
+    ipclock(id)
     gnetCormat = getCormat(esetTmp, unique(geneSummGnet$gene))
+    ipcunlock(id)
     
     gnetCormatSort = sortCormat(gnetCormat)
     gnetCormatSort[
@@ -247,7 +257,9 @@ study2017Cormat = foreach(i = 1:length(eset), .combine = rbind) %:%
     
     esetTmp = eset[[i]]  
     
+    ipclock(id)
     cormat = getCormat(esetTmp, unique(genes2017Coefs$gene_sym))
+    ipcunlock(id)
     
     cormatSort = sortCormat(cormat)
     cormatSort[, study := names(eset)[i]]
