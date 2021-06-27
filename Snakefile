@@ -76,7 +76,6 @@ rule analyze_cor:
     'output/suppFig3.png',
     'output/fig2.png',
     'data/result_blood_ref.qs',
-    'data/result_blood_ref.rds',
     'data/genes_blood.csv'
   shell:
     'Rscript {input[0]}'
