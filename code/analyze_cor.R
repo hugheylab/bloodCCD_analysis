@@ -288,20 +288,21 @@ ggexport(combinedStudyHeatmap,
          width = 48, height = 60, unit = 'in')
 
 #overlap
-vennDt = dcast(unique(combinedCors[, .(model, params, gene_sym = gene1)]), 
-               gene_sym ~ model + params)
+vennDt = combinedCors[, .(model, params, gene_sym = gene1)]
+vennDt[model == 'glmnet', model := 'enet']
+vennDt[, params := gsub('\\.', '_', params)]
+vennDt = dcast(unique(vennDt), gene_sym ~ model + params)
 vennDt[, gene_sym := NULL]
 vennDt = vennDt[, !duplicated(as.list(vennDt)), with = FALSE]
 
 vennColors = brewer.pal(5, 'Set2')
 vennObj = venn.diagram(
-  list(vennDt[!is.na(glmnet_lambda_0.1101)]$glmnet_lambda_0.1101, 
-       vennDt[!is.na(glmnet_lambda_0.1923)]$glmnet_lambda_0.1923, 
-       vennDt[!is.na(zeitzeiger_2017)]$zeitzeiger_2017, 
-       vennDt[!is.na(zeitzeiger_sumabsv_2)]$zeitzeiger_sumabsv_2, 
-       vennDt[!is.na(zeitzeiger_sumabsv_3)]$zeitzeiger_sumabsv_3), 
-  category.names = c('enet_lambda_0.1101', 'enet_lambda_0.1923', 'zeitzeiger_2017', 
-                     'zeitzeiger_sumabsv_2', 'zeitzeiger_sumabsv_3'), 
+  list(vennDt[which(!is.na(vennDt[, 1])), 1], 
+       vennDt[which(!is.na(vennDt[, 2])), 2], 
+       vennDt[which(!is.na(vennDt[, 3])), 3], 
+       vennDt[which(!is.na(vennDt[, 4])), 4], 
+       vennDt[which(!is.na(vennDt[, 5])), 5]), 
+  category.names = names(vennDt), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
   cat.cex = 1, cat.default.pos = 'outer', main.fontfamily = 'sans', 
   main = 'Gene overlap between models', filename = NULL)
@@ -312,13 +313,12 @@ grid.draw(vennObj)
 dev.off()
 
 suppFig2 = venn.diagram(
-  list(vennDt[!is.na(glmnet_lambda_0.1101)]$glmnet_lambda_0.1101, 
-       vennDt[!is.na(glmnet_lambda_0.1923)]$glmnet_lambda_0.1923, 
-       vennDt[!is.na(zeitzeiger_2017)]$zeitzeiger_2017, 
-       vennDt[!is.na(zeitzeiger_sumabsv_2)]$zeitzeiger_sumabsv_2, 
-       vennDt[!is.na(zeitzeiger_sumabsv_3)]$zeitzeiger_sumabsv_3), 
-  category.names = c('enet_lambda_0.1101', 'enet_lambda_0.1923', 'zeitzeiger_2017', 
-                     'zeitzeiger_sumabsv_2', 'zeitzeiger_sumabsv_3'), 
+  list(vennDt[which(!is.na(vennDt[, 1])), 1], 
+       vennDt[which(!is.na(vennDt[, 2])), 2], 
+       vennDt[which(!is.na(vennDt[, 3])), 3], 
+       vennDt[which(!is.na(vennDt[, 4])), 4], 
+       vennDt[which(!is.na(vennDt[, 5])), 5]), 
+  category.names = names(vennDt), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
   cat.cex = 6,  main.fontfamily = 'sans', cat.pos = c(0, 0, 300, 220, 160),
   cat.dist = c(0.175, 0.2, 0.275, 0.2, 0.25), cex = 8, filename = NULL)
