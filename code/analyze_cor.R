@@ -389,10 +389,13 @@ ggexport(filename = file.path(outputFolder, 'ccd_plot.pdf'), pCcd
   , height = 18, width = 18, units = 'in')
 
 
+
+
 glmnetCcdDt = foreach(cond = c('control', 'perturbation'), 
                       .combine = rbind) %dopar% {
   
-  genes = unique(combinedCors[params == 'lambda_0.1101', gene1])
+  genes = unique(combinedCors[
+    params == sort(unique((combinedCors[model == 'glmnet']$params))), gene1])
   
   ref = emat 
   
