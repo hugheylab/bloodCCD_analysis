@@ -21,7 +21,7 @@ codeFolder = file.path('code')
 outputFolder = file.path('output')
 dataFolder = file.path('data')
 
-source(file.path(codeFolder, 'cv_utils.R'))
+source(file.path(codeFolder, 'utils.R'))
 
 #loading data
 studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
@@ -34,11 +34,7 @@ ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
 emat = qread(ematPath)
 
 timeMax = 24
-sampleMetadata[
-  , zt := as.duration(hm(clock_time) - hm(sunrise_time))/as.duration(hours(1))
-  ][zt < 0, zt := zt + timeMax]
-sampleMetadata[, ztFrac := zt/timeMax
-  ][, zt := NULL]
+sampleMetadata = convertZt(sampleMetadata)
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
 controlMetadata = sampleMetadata[condition %in% controlConds]
@@ -50,7 +46,6 @@ foldIds = unique(controlMetadata[, .(study, subject)])
 foldIds[, foldId := sample(rep_len(1:nFold, .N))]  
 
 sm = merge(controlMetadata, foldIds, by = c('study', 'subject'))
-noClock = sm[is.na(clock_time), sample]
 sm = sm[!is.na(clock_time)]
 
 xClock = t(emat)[sm$sample, ]
@@ -68,21 +63,18 @@ spcResultList = foreach(absv = sumabsv) %dopar% {
   spcResult = zeitzeigerSpcCv(fitResultList, nTime = nTime, sumabsv = absv)
   return(spcResult)}
 
-predResultList = foreach(spcRes = spcResultList) %dopar% { 
+zzCv = foreach(spcRes = spcResultList, .combine = rbind) %dopar% { 
   predResult = zeitzeigerPredictCv(x = xClock, 
                                    time = sm$ztFrac, 
                                    foldid = sm$foldId, 
                                    spcRes, 
                                    nSpc = nSpc, 
-                                   timeRange = ztFracRange)}
-
-timePredList = foreach(pred = predResultList) %dopar% {
-  return(pred$timePred)}
-
-zzCv = data.table(do.call(rbind, timePredList))
-zzCv[, `:=`(sample = rep.int(rownames(xClock), times = length(sumabsv)), 
-            foldId = rep.int(sm$foldId, times = length(sumabsv)), 
-            sumabsv = rep(sumabsv, each = nrow(xClock)))]
+                                   timeRange = ztFracRange)
+  
+  return(data.table(predResult$timePred))}
+zzCv[, sample := rep.int(rownames(xClock), times = length(sumabsv))]
+zzCv[, foldId := rep.int(sm$foldId, times = length(sumabsv))]
+zzCv[, sumabsv := rep(sumabsv, each = nrow(xClock))]
 zzCv = melt(zzCv, 
             id.vars = c('sample', 'foldId' ,'sumabsv'), 
             measure.vars = glue('V{nSpc}'), 
@@ -93,10 +85,10 @@ zzCv = merge(zzCv,
              controlMetadata[, .(study, subject, sample, ztFrac)], 
              by = 'sample')
 zzCv[, diffFrac := getCircDiff(ztFrac, ztFracPred) * 24]
-zzCv[, `:=`(absDiffFrac = abs(diffFrac), 
-           nSpc_fac = factor(nSpc), 
-           sumabsv_fac = factor(sumabsv), 
-           study_fac = factor(study))]
+zzCv[, absDiffFrac := abs(diffFrac)]
+zzCv[, nSpc_fac := factor(nSpc)]
+zzCv[, sumabsv_fac := factor(sumabsv)]
+zzCv[, study_fac := factor(study)]
 
 #### cross-validation summary
 zzCvSumm = zzCv[, .(mse = mean(diffFrac^2), 
@@ -112,7 +104,7 @@ zzGenes = foreach(ii = 1:length(sumabsv), .combine=rbind) %dopar% {
                                      function(kk) { cumsum(a[kk,]) }))})
   return(do.call(rbind, lapply(genesCumsumTmp, function(a) colSums(a!=0))))}
 zzGenes = data.table(zzGenes[, nSpc])
-zzGenes[, sumabsv := rep(sumabsv, each = length(unique(foldIds$foldId)))]
+zzGenes[, sumabsv := rep(sumabsv, each = nFold)]
 zzGenes = melt(zzGenes, id.vars = 'sumabsv', variable.name = 'nSpc', 
                value.name = 'nGenes')  
 zzGenes[, nSpc := as.integer(sub('.', '', nSpc))]
@@ -209,20 +201,20 @@ glmnetCvDt = glmnetCvDt[, .(lambda, sample,
                             ztPred = atan2(y2, y1)/(2*pi))]
 glmnetCvDt[ztPred < 0, ztPred := ztPred + 1]
 
-yDt = data.table(sample = rownames(y), y1 = y[, 1], y2 = y[, 2])
+yDt = data.table(y, keep.rownames = 'sample')
 yDt = yDt[, .(sample, 
-              ztAct = atan2(y2, y1)/(2*pi))]
+              ztAct = atan2(V2, V1)/(2*pi))]
 yDt[ztAct < 0, ztAct := ztAct + 1]
 
 glmnetCvDt = merge(glmnetCvDt, yDt, by = 'sample')
 glmnetCvDt[, ae := abs(getCircDiff(ztAct, ztPred))]
 glmnetCvDt = glmnetCvDt[, .(mae = mean(ae),
                             ae_sd = sd(ae)), 
-  by = lambda]
+                        by = lambda]
 glmnetCvDt[, upper := mae + ae_sd]
 glmnetCvDt[, lower := mae - ae_sd]
 glmnetCvDt = glmnetCvDt[, 24*.SD[, .(mae, ae_sd, upper, lower)], 
-  by = lambda]
+                        by = lambda]
 
 #glmnet gene coefficients by lambda
 glmnetCoefs = foreach(lambda = glmnetCvFit$lambda, .combine = rbind) %do% {
@@ -314,8 +306,8 @@ pGlmnetCoef = plotCoefs(geneSummGlmnet, ncol = 2, as.factor(lambda), param) +
 ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf'), 
        plot = pGlmnetCoef, width = 18, height = 18, units = 'in', dpi = 500)
 
-suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], 
-                     ncol = 2, param)
+suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], ncol = 2, 
+                     param)
 ggexport(filename = file.path(outputFolder, 'suppFig1.pdf'), 
        plot = suppFig1, width = 900, height = 600)
 

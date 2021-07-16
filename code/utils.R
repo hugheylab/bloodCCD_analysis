@@ -1,9 +1,37 @@
+#cv utils
+plotCoefs = function(coefDt, ncol = NULL, nrow = NULL, ...) {
+  
+  p = ggplot(data = coefDt, aes(x = reorder(gene_sym, coef), y = coef)) +
+    geom_point(size = 1) +
+    geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
+                     , y = 0, yend = coef)) +
+    scale_y_continuous(expand = c(0.015, 0)) +
+    coord_flip() +
+    xlab('Gene') +
+    ylab('Coefficient')
+  
+  if (!missing(...)) {
+    p = p + 
+      facet_wrap(vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
+  
+  return(p)}
+
+convertZt = function(md) {
+  md[, zt := as.duration(hm(clock_time) - hm(sunrise_time))/as.duration(hours())
+     ][zt < 0, zt := zt + timeMax]
+  md[, ztFrac := zt/timeMax
+  ][, zt := NULL]
+  
+  return(md)}
+
+#cor utils
 getTimeCourseDt = function(emat, sm, genes) {
   
   timeCourseDt = as.data.table(t(emat[genes, sm$sample]), 
                                keep.rownames = 'sample')
-  colnames(timeCourseDt)[-1] = as.character(
-    lookUp(colnames(timeCourseDt)[-1], 'org.Hs.eg', 'SYMBOL', load = TRUE))
+  setnames(timeCourseDt, 2:length(colnames(timeCourseDt)), 
+           lookup(colnames(timeCourseDt)[-1], 'org.Hs.eg', 'SYMBOL', 
+                  load = TRUE))
   
   timeCourseDt = merge(timeCourseDt, sm[, .(study, sample, ztFrac)], 
                        by = 'sample')
@@ -54,7 +82,7 @@ sortCormat = function (cormat) {
                   variable.name = 'gene2', value.name = 'rho')
     
   cormatDt[, gene1 := factor(gene1, levels = ord)]
-  cormatDt[, gene1 := factor(gene1, levels = ord)]
+  cormatDt[, gene2 := factor(gene2, levels = rev(ord))]
   
   cormatDt[gene1 == gene2, rho := NA]
   
@@ -89,3 +117,44 @@ calcCCD = function(eset1, eset2, genes, scale = TRUE) {
     ccd = ccd/nPairs}
   
   return(ccd)}
+
+#cell_utils
+processCellData = function(cellData, genes) {
+  
+  setnames(cellData, 1:3, c('probe', 'gene', 'cell'))
+
+  cellDataScaled = cellData[
+    gene %in% genes 
+    , .(gene, cell, tpm = TPM)]
+  cellDataScaled[
+    , tpm := (tpm - mean(tpm))/sd(tpm)
+    , by = gene]
+  cellDataScaled[is.nan(tpm)
+    , tpm := 0]
+  cellDataScaled[, gene := factor(gene, levels = attributes(genes)$levels)]
+
+  cellDataWide = dcast(cellDataScaled, cell ~ gene, value.var = 'tpm')
+  d = dist(as.matrix(cellDataWide, rownames = 'cell'))
+  hc = hclust(d)$merge
+  opt = order.optimal(d, hc)$order
+
+  cellDataScaled[, cell := factor(cell, levels = names(opt)[opt])]
+  
+  return(cellDataScaled)}
+
+plotCellData = function(cellData, ..., scales = NULL, ncol = NULL,
+                        nrow = NULL, drop = TRUE) {
+  
+  p = ggplot(cellData, aes(x = gene, y = cell, fill = tpm)) +
+    geom_tile(color = 'white') +
+    scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white' 
+                         , midpoint = 0, space = 'Lab', name = 'scaled tpm') +
+    xlab('Gene') +
+    ylab('Cell type') +
+    theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1))
+  
+  if (!missing(...)) {
+    p = p + facet_wrap(vars(...), scales = scales, nrow = nrow, ncol = ncol,
+                       drop = drop)}
+  
+  return(p)}

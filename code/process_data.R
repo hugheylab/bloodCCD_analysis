@@ -14,10 +14,10 @@ parentFolderPath = file.path(dataFolder, 'expression_data')
 discoveryStudyNames = c('GSE39445', 'GSE48113', 'GSE56931')
 
 studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
-studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
+studyMetadata = fread(studyMetadataPath)
 
 sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
-sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
+sampleMetadata = fread(sampleMetadataPath)
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
 controlMetadata = sampleMetadata[condition %in% controlConds]
@@ -25,38 +25,26 @@ controlMetadata = sampleMetadata[condition %in% controlConds]
 esetList = getStudyDataList(parentFolderPath, studyMetadata)
 
 
-#limiting to control samples
-controlEsetList = foreach(eset = esetList) %do% {
+
+cbEsetList = foreach(eset = esetList) %do% {
+  #limiting to control samples 
+  eset = eset[, sampleNames(eset) %in% controlMetadata$sample]
   
-  esetControl = eset[, sampleNames(eset) %in% controlMetadata$sample]
-  return(esetControl)}
-
-#standardizing genewise expression values to mean zero, variance 1 
-scaledEsetList = foreach(eset = controlEsetList) %do% {
-    
-    esetScaled = eset
-    exprs(esetScaled) = t(scale(t(exprs(eset))))
-    
-    return(esetScaled)}
-names(scaledEsetList) = names(esetList)
-
-#combat for individual-level batch correction 
-cbEsetList = foreach(eset = scaledEsetList) %do% {
-    
-    cbEset = eset
-    pheno = pData(eset)
-    edata = exprs(eset)
-    batch = sampleMetadata[sample %in% pheno[, 'geo_accession'], subject]
-    
-    modCombat = model.matrix(~1, data = pheno)
-    combatEdata = ComBat(edata, batch = batch, mod = modCombat)
-    
-    exprs(cbEset) = combatEdata
-    
-    return(cbEset)}
+  #standardizing genewise expression values to mean zero, variance 1  
+  exprs(eset) = t(scale(t(exprs(eset))))
+  
+  #combat for individual-level batch correction  
+  pheno = pData(eset)
+  edata = exprs(eset)
+  batch = controlMetadata[sample %in% pheno[, 'geo_accession'], subject]
+  
+  modCombat = model.matrix(~1, data = pheno)
+  combatEdata = ComBat(edata, batch = batch, mod = modCombat)
+  
+  exprs(cbEset) = combatEdata
+  
+  return(cbEset)}
 names(cbEsetList) = names(esetList)
-qsave(cbEsetList, file = file.path(dataFolder, 'subj_norm_esetList.qs'))
-
 
 #long data for plots 
 eDt = foreach(eset = cbEsetList, .combine = rbind) %do% {
@@ -92,7 +80,7 @@ p4 = ggplot(eDt, aes(x = study, y = expression)) +
 
 #cross-study normalization
 ematList = extractExpressionData(cbEsetList, sampleMetadata)
-ematDiscovery = mergeStudyData(ematList[discoveryStudyNames], sampleMetadata)
+ematDiscovery = mergeStudyData(ematList[discoveryStudyNames], controlMetadata)
 
 
 #post-cross-study normalization long data

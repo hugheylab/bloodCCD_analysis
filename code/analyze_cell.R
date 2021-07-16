@@ -10,7 +10,7 @@ codeFolder = 'code'
 dataFolder = 'data'
 outputFolder = 'output'
 
-source(file.path(codeFolder, 'cell_utils.R'))
+source(file.path(codeFolder, 'utils.R'))
 
 glmnetCor = qread(file.path(dataFolder, 'glmnet_cor_dt.qs'))
 glmnetGenes = unique(glmnetCor$gene1)
