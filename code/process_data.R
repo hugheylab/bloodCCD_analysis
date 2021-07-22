@@ -1,13 +1,4 @@
-library(metapredict)
-library(sva)
-library(data.table)
-library(doParallel)
-library(Biobase)
-library(qs)
-library(ggplot2)
-theme_set(theme_bw())
-
-dataFolder= 'data'
+source(file.path('code', 'utils.R'))
 
 parentFolderPath = file.path(dataFolder, 'expression_data') 
 
@@ -60,22 +51,22 @@ eDt = merge(controlMetadata[, .(study, subject, sample)],
             eDt, by = 'sample')
 
 #gene-level plots
-p1 = ggplot(eDt, aes(x = gene, y = expression)) +
-  geom_boxplot()
+p1 = ggplot(eDt) +
+  geom_boxplot(aes(x = gene, y = expression))
 
 #gene expression faceted by study
-p2 = ggplot(eDt, aes(x = gene, y = expression)) +
-  geom_boxplot() +
-  facet_grid(~study)
+p2 = ggplot(eDt) +
+  geom_boxplot(aes(x = gene, y = expression)) +
+  facet_grid(vars(study))
    
 #gene expression by subject
-p3 = ggplot(eDt, aes(x = subject, y = expression)) +
-  geom_boxplot() +
-  facet_wrap(~study, scales = 'free_x')
+p3 = ggplot(eDt) +
+  geom_boxplot(aes(x = subject, y = expression)) +
+  facet_wrap(vars(study), scales = 'free_x')
 
 #study-level expression
-p4 = ggplot(eDt, aes(x = study, y = expression)) +
-  geom_boxplot()
+p4 = ggplot(eDt) +
+  geom_boxplot(aes(x = study, y = expression))
 
 
 #cross-study normalization
@@ -89,27 +80,27 @@ names(dimnames(ematDiscovery)) = c('gene', 'sample')
 ematDiscoveryDt = as.data.table(as.table(ematDiscovery))
 setnames(ematDiscoveryDt, 'N', 'expression')
 
-ematDiscoveryDt = merge(controlMetadata[, .(study, subject, sample)]
-  , ematDiscoveryDt, by = 'sample')
+ematDiscoveryDt = merge(controlMetadata[, .(study, subject, sample)], 
+                        ematDiscoveryDt, by = 'sample')
 
 
 #gene-level plots
-p5 = ggplot(ematDiscoveryDt, aes(x = gene, y = expression)) +
-  geom_boxplot()
+p5 = ggplot(ematDiscoveryDt) +
+  geom_boxplot(aes(x = gene, y = expression))
 
 #gene expression faceted by study
-p6 = ggplot(ematDiscoveryDt, aes(x = gene, y = expression)) +
-  geom_boxplot() +
-  facet_grid(~study)
+p6 = ggplot(ematDiscoveryDt) +
+  geom_boxplot(aes(x = gene, y = expression)) +
+  facet_grid(vars(study))
    
 #gene expression by subject
-p7 = ggplot(ematDiscoveryDt, aes(x = subject, y = expression)) +
-  geom_boxplot() +
-  facet_wrap(~study, scales = 'free_x')
+p7 = ggplot(ematDiscoveryDt) +
+  geom_boxplot(aes(x = subject, y = expression)) +
+  facet_wrap(vars(study), scales = 'free_x')
 
 #study-level expression
-p8 = ggplot(ematDiscoveryDt, aes(x = study, y = expression)) +
-  geom_boxplot()
+p8 = ggplot(ematDiscoveryDt) +
+  geom_boxplot(aes(x = study, y = expression))
 
 qsave(cbEsetList, file = file.path(dataFolder, 'circadian_human_blood.qs'))
 qsave(ematDiscovery, file = file.path(dataFolder, 'circadian_human_blood_emat.qs'))

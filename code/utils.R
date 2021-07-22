@@ -1,20 +1,58 @@
+library('annotate')
+library('Biobase')
+library('BiocParallel')
+library('cba')
+library('data.table')
+library('deltaccd')
+library('doParallel')
+library('ggplot2')
+library('ggpubr')
+library('ggrepel')
+library('glmnet')
+library('glue')
+library('lubridate')
+library('limorhyde2')
+library('metapredict')
+library('patchwork')
+library('qs')
+library('RColorBrewer')
+library('sva')
+library('VennDiagram')
+library('zeitzeiger')
+
+theme_set(theme_bw())
+registerDoParallel(cores = 2)
+
+#setup vars
+codeFolder = file.path('code')
+outputFolder = file.path('output')
+dataFolder = file.path('data')
+
+studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
+sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
+ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
+esetPath = file.path(dataFolder, 'circadian_human_blood.qs')
+ematPerturbPath = file.path('data', 'perturb_emat.qs')
+
+#ggplot convenience vars
+eb = element_blank()
+
 #cv utils
 plotCoefs = function(coefDt, ncol = NULL, nrow = NULL, ...) {
   
-  p = ggplot(data = coefDt, aes(x = reorder(gene_sym, coef), y = coef)) +
-    geom_point(size = 1) +
-    geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef)
-                     , y = 0, yend = coef)) +
+  p = ggplot(coefDt) +
+    geom_point(aes(x = reorder(gene_sym, coef), y = coef), size = 1) +
+    geom_segment(aes(x = reorder(gene_sym, coef), xend = reorder(gene_sym, coef), 
+                     y = 0, yend = coef)) +
     scale_y_continuous(expand = c(0.015, 0)) +
     coord_flip() +
-    xlab('Gene') +
-    ylab('Coefficient')
+    labs(x = 'Gene', y = 'Coefficient')
   
   if (!missing(...)) {
-    p = p + 
-      facet_wrap(vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
+    p = p + facet_wrap(vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
   
   return(p)}
+
 
 convertZt = function(md) {
   md[, zt := as.duration(hm(clock_time) - hm(sunrise_time))/as.duration(hours())
@@ -23,6 +61,7 @@ convertZt = function(md) {
   ][, zt := NULL]
   
   return(md)}
+
 
 #cor utils
 getTimeCourseDt = function(emat, sm, genes) {
@@ -42,16 +81,17 @@ getTimeCourseDt = function(emat, sm, genes) {
   
   return(timeCourseDt)}
 
+
 plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL, breaks = 4) {
   
-  p = ggplot(timeCourseDt, aes(x = ztFrac*24, y = expression, color = study)) +
-    geom_point(shape = 1) +
-    ylab('Expression (norm.)') +
-    xlab('Time of day (h)') +
+  p = ggplot(timeCourseDt) +
+    geom_point(aes(x = ztFrac*24, y = expression, color = study), shape = 1) +
+    labs(x = 'Expression (norm.)', y = 'Time of day (h)') +
     facet_wrap(vars(gene), scales = 'free_y', ncol = ncol, nrow = nrow) +
     scale_x_continuous(breaks = seq(0, 24, by = breaks), limits = c(0, 24))
   
   return(p)}
+
 
 getCormat = function(e, genes, entrezID = FALSE) {
 
@@ -69,6 +109,7 @@ getCormat = function(e, genes, entrezID = FALSE) {
   colnames(cormat) = rownames(cormat)
   
   return(cormat)}
+
 
 sortCormat = function (cormat) {
   
@@ -88,19 +129,19 @@ sortCormat = function (cormat) {
   
   return(cormatDt)}
 
+
 plotHeatmap = function (cormatDt, ..., ncol = NULL, nrow = NULL, scales = 'free') {
   
-  hm = ggplot(cormatDt, aes(x = gene1, y = gene2,  fill = rho))+
-    geom_tile(color = 'white') +
-    scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white', 
-      midpoint = 0, limit = c(-1,1), space = 'Lab', name = 'rho') +
-    xlab('Gene') +
-    ylab('Gene')
+  hm = ggplot(cormatDt) +
+    geom_tile(aes(x = gene1, y = gene2,  fill = rho), color = 'white') +
+    scale_fill_distiller(palette = 'PuOr', limits = c(-1,1)) +
+    labs(x = 'Gene', y = 'Gene', fill = 'rho')
   
   if (!missing(...)) { 
     hm = hm + facet_wrap(vars(...), scales = scales, ncol = ncol, nrow = nrow)}
   
   return(hm)}
+
 
 calcCCD = function(eset1, eset2, genes, scale = TRUE) {
   
@@ -118,20 +159,16 @@ calcCCD = function(eset1, eset2, genes, scale = TRUE) {
   
   return(ccd)}
 
+
 #cell_utils
 processCellData = function(cellData, genes) {
   
   setnames(cellData, 1:3, c('probe', 'gene', 'cell'))
 
-  cellDataScaled = cellData[
-    gene %in% genes 
-    , .(gene, cell, tpm = TPM)]
-  cellDataScaled[
-    , tpm := (tpm - mean(tpm))/sd(tpm)
-    , by = gene]
-  cellDataScaled[is.nan(tpm)
-    , tpm := 0]
-  cellDataScaled[, gene := factor(gene, levels = attributes(genes)$levels)]
+  cellDataScaled = cellData[gene %in% genes, .(gene, cell, tpm = TPM)]
+  cellDataScaled[, tpm := (tpm - mean(tpm))/sd(tpm), by = gene]
+  cellDataScaled[is.nan(tpm), tpm := 0]
+  cellDataScaled[, gene := factor(gene, levels = levels(genes))]
 
   cellDataWide = dcast(cellDataScaled, cell ~ gene, value.var = 'tpm')
   d = dist(as.matrix(cellDataWide, rownames = 'cell'))
@@ -142,15 +179,14 @@ processCellData = function(cellData, genes) {
   
   return(cellDataScaled)}
 
+
 plotCellData = function(cellData, ..., scales = NULL, ncol = NULL,
                         nrow = NULL, drop = TRUE) {
   
-  p = ggplot(cellData, aes(x = gene, y = cell, fill = tpm)) +
-    geom_tile(color = 'white') +
-    scale_fill_gradient2(low = 'red', high = 'blue', mid = 'white' 
-                         , midpoint = 0, space = 'Lab', name = 'scaled tpm') +
-    xlab('Gene') +
-    ylab('Cell type') +
+  p = ggplot(cellData) +
+    geom_tile(aes(x = gene, y = cell, fill = tpm), color = 'white') +
+    scale_fill_distiller(palette = 'PuOr') +
+    labs(x = 'Gene', y = 'Cell type', fill = 'scaled tpm') +
     theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1))
   
   if (!missing(...)) {

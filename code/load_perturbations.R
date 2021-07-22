@@ -1,12 +1,4 @@
-library(metapredict)
-library(sva)
-library(data.table)
-library(doParallel)
-library(Biobase)
-library(qs)
-
-
-dataFolder= 'data'
+source(file.path('code', 'utils.R'))
 
 parentFolderPath = file.path(dataFolder, 'expression_data') 
 
@@ -17,8 +9,8 @@ studyMetadata = fread(studyMetadataPath)
 
 sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath)
-perturbConds = c('Sleep Restriction', 'Out of phase with respect to melatonin'
-  , 'sleep deprivation')
+perturbConds = c('Sleep Restriction', 'Out of phase with respect to melatonin', 
+                 'sleep deprivation')
 perturbMetadata = sampleMetadata[condition %in% perturbConds]
 
 esetList = getStudyDataList(parentFolderPath, studyMetadata)

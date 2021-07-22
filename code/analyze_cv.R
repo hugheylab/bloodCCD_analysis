@@ -1,36 +1,8 @@
-library(zeitzeiger)
-library(glmnet)
-library(Biobase)
-library(doParallel)
-registerDoParallel(cores = 2)
-library(data.table)
-library(qs)
-library(lubridate)
-library(glue)
-library(ggplot2)
-library(ggrepel)
-library(cowplot)
-library(annotate)
-library(ggpubr)
-library(patchwork)
-
-#setup
-theme_set(theme_bw(base_size = 25))
-
-codeFolder = file.path('code')
-outputFolder = file.path('output')
-dataFolder = file.path('data')
-
-source(file.path(codeFolder, 'utils.R'))
+source(file.path('code', 'utils.R'))
 
 #loading data
-studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath, stringsAsFactors = FALSE)
-
-sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath, stringsAsFactors = FALSE)
-
-ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
 emat = qread(ematPath)
 
 timeMax = 24
@@ -247,18 +219,17 @@ glmnetPltDt = merge(glmnetCvDt, lambdaSumm, by = 'lambda')
 
 # glmnet summary plots
 # glmnet cv plot
-pGlmnetMae = ggplot(data = glmnetPltDt) +
+pGlmnetMae = ggplot(glmnetPltDt) +
   geom_errorbar(aes(x = lambda, ymax = upper, ymin = lower)) +
   geom_point(aes(x = lambda, y = mae),shape = 21, fill = 'white', color = 'black') +
   scale_x_log10(expression(lambda)) +
-  ylab('MAE (hours)')
+  labs(y = 'MAE (h)')
 
 #ngenes by lambda
-pGlmnetNGenes = ggplot(data = glmnetPltDt) +
+pGlmnetNGenes = ggplot(glmnetPltDt) +
   geom_point(aes(x = lambda, y = nGenes)) +
   scale_y_continuous(trans = 'log2', breaks = 2^c(0:9)) +
-  ylab('Number of genes') +
-  xlab(expression(lambda))
+  labs(x = expression(lambda), y = 'Number of genes')
 
 pGlmnetCv = pGlmnetMae / pGlmnetNGenes +
   plot_annotation(title = 'Glmnet cross-validation')
@@ -273,7 +244,7 @@ pLambdas = glmnetSumm$params[c(65, 77)]
 #comparing mae and ngenes between zeitzeiger and glmnet
 mdlSumm = rbind(zzSumm, glmnetSumm)
 
-pZzVsGlmnet = ggplot(data = mdlSumm[nGenes < 60]) +
+pZzVsGlmnet = ggplot(mdlSumm[nGenes < 60]) +
   geom_point(aes(x = mae, y = nGenes, fill = model), 
              shape = 21, size = 4, alpha = 0.6) +
   geom_text_repel(
@@ -282,8 +253,7 @@ pZzVsGlmnet = ggplot(data = mdlSumm[nGenes < 60]) +
         params = ifelse(params == min(pLambdas), '41 genes', '21 genes'))], 
     box.padding = 0.5, 
     aes(x = mae, y = nGenes, label = params)) +
-  ylab('Number of genes') +
-  xlab('MAE (hours)')
+  labs(x = 'MAE (h)', y = 'Number of genes')
   
 # combining glmnet, zeitzeiger cv plots
 pCvFinal = (pZzCv | pGlmnetCv | pZzVsGlmnet) +
