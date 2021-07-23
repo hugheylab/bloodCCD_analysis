@@ -13,10 +13,7 @@ esetList = qread(esetPath)
 ematPerturb = qread(ematPerturbPath)
 
 timeMax = 24
-sampleMetadata[, zt := as.duration(hm(clock_time) - hm(sunrise_time))/as.duration(hours(1))
-  ][zt < 0, zt := zt + timeMax]
-sampleMetadata[, ztFrac := zt/timeMax
-  ][, zt := NULL]
+sampleMetadata = convertZt(sampleMetadata)
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
 controlMetadata = sampleMetadata[condition %in% controlConds]
