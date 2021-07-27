@@ -1,13 +1,13 @@
 source(file.path('code', 'utils.R'))
 
-parentFolderPath = file.path(dataFolder, 'expression_data') 
+parentFolderPath = file.path(dataDir, 'expression_data') 
 
 discoveryStudyNames = c('GSE39445', 'GSE48113', 'GSE56931')
 
-studyMetadataPath = file.path('data', 'metadata', 'study_metadata.csv')
+studyMetadataPath = file.path(dataDir, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath)
 
-sampleMetadataPath = file.path('data', 'metadata', 'sample_metadata.csv')
+sampleMetadataPath = file.path(dataDir, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath)
 perturbConds = c('Sleep Restriction', 'Out of phase with respect to melatonin', 
                  'sleep deprivation')
@@ -16,7 +16,7 @@ perturbMetadata = sampleMetadata[condition %in% perturbConds]
 esetList = getStudyDataList(parentFolderPath, studyMetadata)
 
 #limiting to perturbation samples
-perturbEsetList = foreach (eset = esetList) %do% {
+perturbEsetList = foreach(eset = esetList) %do% {
   
   eset = eset[, sampleNames(eset) %in% perturbMetadata$sample]
 

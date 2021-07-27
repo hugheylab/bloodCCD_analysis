@@ -1,20 +1,19 @@
 source(file.path('code', 'utils.R'))
 
-parentFolderPath = file.path(dataFolder, 'expression_data') 
+parentFolderPath = file.path(dataDir, 'expression_data') 
 
 discoveryStudyNames = c('GSE39445', 'GSE48113', 'GSE56931')
 
-studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
+studyMetadataPath = file.path(dataDir, 'metadata', 'study_metadata.csv')
 studyMetadata = fread(studyMetadataPath)
 
-sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
+sampleMetadataPath = file.path(dataDir, 'metadata', 'sample_metadata.csv')
 sampleMetadata = fread(sampleMetadataPath)
 controlConds = c('Sleep Extension', 'In phase with respect to melatonin', 
                  'baseline')
 controlMetadata = sampleMetadata[condition %in% controlConds]
 
 esetList = getStudyDataList(parentFolderPath, studyMetadata)
-
 
 
 cbEsetList = foreach(eset = esetList) %do% {
@@ -102,5 +101,5 @@ p7 = ggplot(ematDiscoveryDt) +
 p8 = ggplot(ematDiscoveryDt) +
   geom_boxplot(aes(x = study, y = expression))
 
-qsave(cbEsetList, file = file.path(dataFolder, 'circadian_human_blood.qs'))
-qsave(ematDiscovery, file = file.path(dataFolder, 'circadian_human_blood_emat.qs'))
+qsave(cbEsetList, file = file.path(dataDir, 'circadian_human_blood.qs'))
+qsave(ematDiscovery, file = file.path(dataDir, 'circadian_human_blood_emat.qs'))

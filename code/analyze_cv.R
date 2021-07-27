@@ -44,9 +44,9 @@ zzCv = foreach(spcRes = spcResultList, .combine = rbind) %dopar% {
                                    timeRange = ztFracRange)
   
   return(data.table(predResult$timePred))}
-zzCv[, sample := rep.int(rownames(xClock), times = length(sumabsv))]
-zzCv[, foldId := rep.int(sm$foldId, times = length(sumabsv))]
-zzCv[, sumabsv := rep(sumabsv, each = nrow(xClock))]
+set(zzCv, j = 'sample', value = rep.int(rownames(xClock), times = length(sumabsv)))
+set(zzCv, j = 'foldId', value = rep.int(sm$foldId, times = length(sumabsv)))
+set(zzCv, j = 'sumabsv', value = rep(sumabsv, each = nrow(xClock)))
 zzCv = melt(zzCv, 
             id.vars = c('sample', 'foldId' ,'sumabsv'), 
             measure.vars = glue('V{nSpc}'), 
@@ -108,7 +108,7 @@ pZzNGenes = ggplot(zzGeneSumm) +
 
 pZzCv =  pZzMae / pZzNGenes + 
   plot_annotation(title = 'Zeitzeiger cross-validation')
-ggexport(pZzCv, filename = file.path(outputFolder, 'zeitzeiger_cv.pdf'), 
+ggexport(pZzCv, filename = file.path(outputDir, 'zeitzeiger_cv.pdf'), 
          width = 12, height = 6, unit = 'in', dpi = 500)
 
 #### fitting 'best' model from zeitzeiger cv
@@ -139,13 +139,13 @@ zzCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
   vCoMelt[, gene_fac := factor(gene_sym, levels = rev(vCo$gene_sym))]
   vCoMelt[, nSpc := finalNspc]
   vCoMelt[, sumabsv := absv]}
-qsave(zzCoefsMelt, file = file.path(dataFolder, 'zeitzeiger_coefs.qs')) 
+qsave(zzCoefsMelt, file = file.path(dataDir, 'zeitzeiger_coefs.qs')) 
 
 #### plot of nonzero gene coefs for zeitzeiger
 pZzCoefs = plotCoefs(zzCoefsMelt, nrow = 2, sumabsv, spc) +
   ggtitle(glue('Zeitzeiger coefficients for sumabsv = ', 
                '{paste(finalSumAbsv, collapse = \', \')}'))
-ggexport(pZzCoefs, filename = file.path(outputFolder, 'gene_zeitzeiger_coefs.pdf'))
+ggexport(pZzCoefs, filename = file.path(outputDir, 'gene_zeitzeiger_coefs.pdf'))
 
 #compare zeitzeiger 2017
 genes2017Dt = qread(file.path('data', 'genes2017.qs'))
@@ -233,7 +233,7 @@ pGlmnetNGenes = ggplot(glmnetPltDt) +
 
 pGlmnetCv = pGlmnetMae / pGlmnetNGenes +
   plot_annotation(title = 'Glmnet cross-validation')
-ggexport(pGlmnetCv, filename = file.path(outputFolder, 'glmnet_cv.pdf'), 
+ggexport(pGlmnetCv, filename = file.path(outputDir, 'glmnet_cv.pdf'), 
          width = 12, height = 6, unit = 'in', dpi = 500)
 
 glmnetSumm = glmnetPltDt[, .(nGenes, mae, 
@@ -258,29 +258,29 @@ pZzVsGlmnet = ggplot(mdlSumm[nGenes < 60]) +
 # combining glmnet, zeitzeiger cv plots
 pCvFinal = (pZzCv | pGlmnetCv | pZzVsGlmnet) +
   plot_annotation(title = 'Cross-validation for Zeitzeiger and elastic net')
-ggexport(pCvFinal, filename = file.path(outputFolder, 'bloodCCD_cv.pdf'), 
+ggexport(pCvFinal, filename = file.path(outputDir, 'bloodCCD_cv.pdf'), 
          width = 24, height = 12, units = 'in')
 
 fig1 = pZzMae + pGlmnetMae + pZzVsGlmnet +
   plot_layout(ncol = 2, widths = c(1.25, 2)) +
   plot_annotation(tag_levels = 'A')
-ggexport(fig1, filename = file.path(outputFolder, 'fig1.pdf'), 
+ggexport(fig1, filename = file.path(outputDir, 'fig1.pdf'), 
          width = 1080, height = 720)
 
 
 geneSummGlmnet = glmnetCoefs[round(lambda, 7) %in% pLambdas]
-qsave(geneSummGlmnet, file = file.path(dataFolder, 'glmnet_coefs.qs'))
+qsave(geneSummGlmnet, file = file.path(dataDir, 'glmnet_coefs.qs'))
 
 pGlmnetCoef = plotCoefs(geneSummGlmnet, ncol = 2, as.factor(lambda), param) +
   ggtitle('Glmnet coefficients by lambda')
-ggsave(filename = file.path(outputFolder, 'gene_glmnet_coefs.pdf'), 
+ggsave(filename = file.path(outputDir, 'gene_glmnet_coefs.pdf'), 
        plot = pGlmnetCoef, width = 18, height = 18, units = 'in', dpi = 500)
 
 suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], ncol = 2, 
                      param)
-ggexport(filename = file.path(outputFolder, 'suppFig1.pdf'), 
+ggexport(filename = file.path(outputDir, 'suppFig1.pdf'), 
        plot = suppFig1, width = 900, height = 600)
 
 coefsFinal = pZzCoefs | pGlmnetCoef
-ggexport(coefsFinal, filename = file.path(outputFolder, 'bloodCCD_coefs.pdf'), 
+ggexport(coefsFinal, filename = file.path(outputDir, 'bloodCCD_coefs.pdf'), 
          width = 16, height = 20, units = 'in', dpi = 500)

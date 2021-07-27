@@ -2,6 +2,7 @@ library('annotate')
 library('Biobase')
 library('BiocParallel')
 library('cba')
+library('cowplot')
 library('data.table')
 library('deltaccd')
 library('doParallel')
@@ -24,15 +25,15 @@ theme_set(theme_bw())
 registerDoParallel(cores = 2)
 
 #setup vars
-codeFolder = file.path('code')
-outputFolder = file.path('output')
-dataFolder = file.path('data')
+outputDir = 'output'
+dataDir = 'data'
 
-studyMetadataPath = file.path(dataFolder, 'metadata', 'study_metadata.csv')
-sampleMetadataPath = file.path(dataFolder, 'metadata', 'sample_metadata.csv')
-ematPath = file.path(dataFolder, 'circadian_human_blood_emat.qs')
-esetPath = file.path(dataFolder, 'circadian_human_blood.qs')
-ematPerturbPath = file.path('data', 'perturb_emat.qs')
+studyMetadataPath = file.path(dataDir, 'metadata', 'study_metadata.csv')
+sampleMetadataPath = file.path(dataDir, 'metadata', 'sample_metadata.csv')
+ematPath = file.path(dataDir, 'circadian_human_blood_emat.qs')
+esetPath = file.path(dataDir, 'circadian_human_blood.qs')
+ematPerturbPath = file.path(dataDir, 'perturb_emat.qs')
+esetPerturbPath = file.path(dataDir, 'perturb_esetList.qs')
 
 #ggplot convenience vars
 eb = element_blank()
@@ -49,7 +50,9 @@ plotCoefs = function(coefDt, ncol = NULL, nrow = NULL, ...) {
     labs(x = 'Gene', y = 'Coefficient')
   
   if (!missing(...)) {
-    p = p + facet_wrap(vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
+    p = p + 
+      facet_wrap(
+        vars(...), scales = 'free_y', ncol = ncol, nrow = nrow)}
   
   return(p)}
 
@@ -97,9 +100,7 @@ getCormat = function(e, genes, entrezID = FALSE) {
 
   genes = unique(genes)
  
-  if(inherits(e, 'ExpressionSet')) {
-    emat = exprs(e)
-  } else { emat = e }
+  if (inherits(e, 'ExpressionSet')) emat = exprs(e) else emat = e
   
   cormat = cor(t(emat)[, genes], method = 'spearman')
   
@@ -138,7 +139,9 @@ plotHeatmap = function (cormatDt, ..., ncol = NULL, nrow = NULL, scales = 'free'
     labs(x = 'Gene', y = 'Gene', fill = 'rho')
   
   if (!missing(...)) { 
-    hm = hm + facet_wrap(vars(...), scales = scales, ncol = ncol, nrow = nrow)}
+    hm = hm + 
+      facet_wrap(
+        vars(...), scales = scales, ncol = ncol, nrow = nrow)}
   
   return(hm)}
 
@@ -190,7 +193,8 @@ plotCellData = function(cellData, ..., scales = NULL, ncol = NULL,
     theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1))
   
   if (!missing(...)) {
-    p = p + facet_wrap(vars(...), scales = scales, nrow = nrow, ncol = ncol,
-                       drop = drop)}
+    p = p + 
+      facet_wrap(
+        vars(...), scales = scales, nrow = nrow, ncol = ncol,drop = drop)}
   
   return(p)}
