@@ -32,8 +32,7 @@ ztFracRange = seq(0, 1, 0.001)
 fitResultList = zeitzeigerFitCv(xClock, sm$ztFrac, sm$foldId)
 
 spcResultList = foreach(absv = sumabsv) %dopar% {
-  spcResult = zeitzeigerSpcCv(fitResultList, nTime = nTime, sumabsv = absv)
-  return(spcResult)}
+  spcResult = zeitzeigerSpcCv(fitResultList, nTime = nTime, sumabsv = absv)}
 
 zzCv = foreach(spcRes = spcResultList, .combine = rbind) %dopar% { 
   predResult = zeitzeigerPredictCv(x = xClock, 
@@ -200,9 +199,7 @@ glmnetCoefs = foreach(lambda = glmnetCvFit$lambda, .combine = rbind) %do% {
                           gene = rownames(betas[[2]])[betas[[2]][, 1] != 0], 
                           sin = betas[[2]][betas[[2]][, 1] != 0])
   
-    betaDt = merge(cosBetas, sinBetas, by = c('lambda', 'gene'), all = TRUE)
-
-    return(betaDt)}
+    betaDt = merge(cosBetas, sinBetas, by = c('lambda', 'gene'), all = TRUE)}
   
 glmnetCoefs = glmnetCoefs[gene != '(Intercept)']
 glmnetCoefs = melt(glmnetCoefs, id.vars = c('lambda', 'gene'), 

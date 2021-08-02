@@ -19,6 +19,5 @@ pSchmiedel = plotCellData(cellDataSchmiedel)
 pCellData =  pMonaco + pSchmiedel +
   plot_layout(heights = c(1, 0.5)) +
   plot_annotation(tag_levels = 'A')
-ggexport(pCellData, filename = file.path(outputDir, 'fig4.pdf'), 
-         width = 18, height = 18)
+ggexport(pCellData, filename = file.path(outputDir, 'fig4.pdf'))
 

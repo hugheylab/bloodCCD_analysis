@@ -45,9 +45,7 @@ zzCormat = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
   ipcunlock(id)
   
   zCormatSort = sortCormat(zCormat)
-  zCormatSort[, sumabsv := absv]
-  
-  return(zCormatSort)}
+  zCormatSort[, sumabsv := absv]}
 
 zzHeatmap =  plotHeatmap(zzCormat, sumabsv) +
   ggtitle(glue('Overall correlation heatmaps, genes selected by zeitzeiger', 
@@ -67,9 +65,7 @@ glmnetCormat = foreach(lam = unique(glmnetCoefs$lambda),
     ipcunlock(id)
     
     gnetCormatSort = sortCormat(gnetCormat)
-    gnetCormatSort[, lambda := lam]
-    
-    return(gnetCormatSort)}
+    gnetCormatSort[, lambda := lam]}
 qsave(glmnetCormat, file = file.path(dataDir, 'glmnet_cor_dt.qs'))
 
 glmnetHeatmap = plotHeatmap(glmnetCormat, lambda) +
@@ -87,7 +83,7 @@ heatmap2017 =  plotHeatmap(cormat2017) +
         text = element_text(size = 16))
 heatmap2017 = plot_grid(heatmap2017, NULL, ncol = 2)
 
-combinedCors = glmnetCormat
+combinedCors = copy(glmnetCormat)
 setnames(combinedCors, 'lambda', 'params')
 combinedCors[, params := paste0('lambda_', round(params, 4))]
 combinedCors[, model := 'glmnet']
@@ -98,7 +94,6 @@ combinedCors = rbind(combinedCors,
                      cormat2017[, .(gene1, gene2, rho, 
                                     params = '2017', 
                                     model = 'zeitzeiger')])
-
 setorderv(combinedCors, cols = c('gene1', 'gene2', 'model', 'params'))
 
 
@@ -137,8 +132,7 @@ zzStudyCormat = foreach(i = 1:length(esetList), .combine = rbind) %do% {
                             sumabsv = absv,
                             condition = 'perturb')]
   
-  zCormatSort = rbind(zCormatSort, zCormatPerturbSort)
-  return(zCormatSort)}}
+  zCormatSort = rbind(zCormatSort, zCormatPerturbSort)}}
 
 zzStudyHeatmap = plotHeatmap(zzStudyCormat[condition == 'control'], 
                              sumabsv, study) +
@@ -176,9 +170,7 @@ glmnetStudyCormat = foreach(i = 1:length(esetList), .combine = rbind) %do% {
                                  lambda = lam, 
                                  condition = 'perturb')]
     
-    gnetCormatSort = rbind(gnetCormat, gnetCormatPerturb)
-                             
-    return(gnetCormatSort)}}
+    gnetCormatSort = rbind(gnetCormatSort, gnetCormatPerturbSort)}}
 
 glmnetStudyHeatmap =  plotHeatmap(glmnetStudyCormat[condition == 'control'], 
                                   lambda, study) +
@@ -188,7 +180,6 @@ ggexport(glmnetStudyHeatmap,
          filename = file.path(outputDir, 'study_cors_glmnet.pdf'), 
          width = 20, height = 10, units = 'in')
  
-
 glmnetCormatFigDt = glmnetCormat
 glmnetCormatFigDt[, study := 'Merged']
 glmnetCormatFigDt[, condition := 'control']
@@ -209,9 +200,7 @@ pGlmnetStudyCondList = foreach(lam = unique(glmnetStudyCormat$lambda)) %dopar% {
   p =  plotHeatmap(glmnetStudyCormat, condition, study) +
     ggtitle(bquote('Correlations by study and condition, genes selected by glmnet, '~lambda[.(lam)])) +
     theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1), 
-          text = element_text(size = 8))
-  
-  return(p)}
+          text = element_text(size = 8))}
 pGlmnetStudyCond = ggarrange(plotlist = pGlmnetStudyCondList, nrow = 2)
 ggexport(pGlmnetStudyCond, filename = file.path(outputDir, 'glmnet_study_cond_corr.pdf'), 
          width = 18, height = 18, units = 'in')
@@ -239,9 +228,7 @@ study2017Cormat = foreach(i = 1:length(esetList), .combine = rbind) %dopar% {
   cormatPerturbSort[, study := names(esetPerturbList)[i]]
   cormatPerturbSort[, condition := 'perturb']
   
-  cormatSort = rbind(cormatSort, cormatPerturbSort)
-  
-  return(cormatSort)}
+  cormatSort = rbind(cormatSort, cormatPerturbSort)}
 
 heatmapStudy2017 =  plotHeatmap(study2017Cormat[condition == 'control'], study) + 
   ggtitle('Correlations by study, genes selected by zeitzeiger, 2017') +
@@ -254,16 +241,16 @@ combinedStudyCors = glmnetStudyCormat[condition == 'control',
 setnames(combinedStudyCors, old = 'lambda', new = 'params')
 combinedStudyCors[, params := paste0('lambda_', round(params, 4))]
 combinedStudyCors[, model := 'glmnet']
-combinedStudyCors = rbind(combinedStudyCors, 
-                          zzStudyCormat[condition == 'control', 
-                                        .(gene1, gene2, rho, study,
-                                          params = paste0('sumabsv_', sumabsv), 
-                                          model = 'zeitzeiger')])
-combinedStudyCors = rbind(combinedStudyCors, 
-                          study2017Cormat[condition == 'control', 
-                                          .(gene1, gene2, rho, study, 
-                                            params = '2017', 
-                                            model = 'zeitzeiger')])
+combinedStudyCors = rbind(
+  combinedStudyCors, 
+  zzStudyCormat[condition == 'control', 
+                .(gene1, gene2, rho, study,
+                  params = paste0('sumabsv_', sumabsv), model = 'zeitzeiger')])
+combinedStudyCors = rbind(
+  combinedStudyCors, 
+  tudy2017Cormat[condition == 'control', 
+                 .(gene1, gene2, rho, study, 
+                   params = '2017', model = 'zeitzeiger')])
 setorderv(combinedStudyCors, 
           cols = c('gene1', 'gene2', 'study', 'params', 'model'))
 
@@ -281,11 +268,12 @@ vennDt[, params := gsub('\\.', '_', params)]
 vennDt = dcast(vennDt, gene_sym ~ model + params)
 set(vennDt, j = 'gene_sym', value = NULL)
 vennDt = vennDt[, !duplicated(vennDt), with = FALSE]
+vennList = lapply(1:5, function (j) 
+  vennDt[!which(is.na(vennDt[, j, with = FALSE])), j, with = FALSE][[1]])
 
 vennColors = brewer.pal(5, 'Set2')
 vennObj = venn.diagram(
-  lapply(1:5, function (j) 
-    vennDt[!which(is.na(vennDt[, j, with = FALSE])), j, with = FALSE]), 
+  vennList,
   category.names = names(vennDt), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
   cat.cex = 1, cat.default.pos = 'outer', main.fontfamily = 'sans', 
@@ -297,8 +285,7 @@ grid.draw(vennObj)
 dev.off()
 
 suppFig2 = venn.diagram(
-  lapply(1:5, function (j) 
-    vennDt[!which(is.na(vennDt[, j, with = FALSE])), j, with = FALSE]), 
+  vennList, 
   category.names = names(vennDt), 
   fill = vennColors, fontfamily = 'sans', cat.fontfamily = 'sans', 
   cat.cex = 6,  main.fontfamily = 'sans', cat.pos = c(0, 0, 300, 220, 160),
@@ -332,9 +319,7 @@ ccdDt = foreach(param = unique(combinedCors$params), .combine = rbind) %:%
     
     distDt = data.table(pair1, pair2, pair3, params = param, cond = cond)
     distDt = melt(distDt, id.vars = c('params', 'cond'), variable.name = 'pair', 
-                  value.name = 'ccd')
-    
-    return(distDt)}
+                  value.name = 'ccd')}
 
 pCcd = ggplot(ccdDt) +
   geom_point(aes(x = params, y = ccd, fill = cond), 
@@ -365,22 +350,21 @@ glmnetCcdDt = foreach(
   
   distDt = data.table(pair1, pair2, pair3, params = param, cond = cond)
   distDt = melt(distDt, id.vars = c('params', 'cond'), variable.name = 'pair', 
-                value.name = 'ccd')
-  
-  return(distDt)}
+                value.name = 'ccd')}
 
 pGlmnetCcd = ggplot(glmnetCcdDt) +
-  geom_point(aes(x = cond, y = ccd, fill = cond), 
-             position = position_dodge(width = 0.3), shape = 21, alpha = 0.5, 
-             size = 6) +
+  geom_point(
+    aes(x = cond, y = ccd, fill = cond), position = position_dodge(width = 0.3), 
+    shape = 21, alpha = 0.5, size = 6) +
   coord_flip() +
   theme(legend.position = 'none') +
   labs(x = 'Condition', y = 'CCD', fill = 'Condition') +
   scale_fill_brewer(palette = 'Dark2', direction = 1)
 
-pGlmnetStudyPerturb = plotHeatmap(glmnetCormatFigDt[condition == 'perturb'
-                                                    & lambda == min(lambda)], 
-                                  study, scales = 'fixed', ncol = 2) +
+pGlmnetStudyPerturb = plotHeatmap(
+  glmnetCormatFigDt[condition == 'perturb'
+                    & lambda == min(lambda)], 
+  study, scales = 'fixed', ncol = 2) +
   theme(axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1, size = 14),
         axis.text.y = element_text(size = 14))
 
@@ -410,17 +394,17 @@ rhyStats[, gene_fac := factor(gene, levels = .SD[order(peak_phase), gene])]
 pPeakPhase = ggplot(rhyStats) +
   geom_point(aes(x = peak_phase, y = gene_fac), size = 4) +
   scale_x_continuous(breaks = seq(0, 24, by = 4)) +
-  theme(panel.grid.major.x = eb, panel.grid.minor.x = eb, 
-        panel.grid.major.y = element_line(color = 'lightgrey', linetype = 'dotted', 
-                                          size = 1)) +
+  theme(
+    panel.grid.major.x = eb, panel.grid.minor.x = eb, 
+    panel.grid.major.y = element_line(color = 'lightgrey', linetype = 'dotted', 
+                                      size = 1)) +
   labs(x = 'Peak phase (h)', y = 'Gene', shape = 'Gene set')
 
 #getting time courses
 glmnetTimeCourseDt = getTimeCourseDt(emat, sm, glmnetGenes)
 glmnetTimeCourseDt[, gene := factor(gene, levels = rev(levels(rhyStats$gene_fac)))]
 pTimeCourse = plotTimeCourse(glmnetTimeCourseDt, ncol = 5, breaks = 6)
-ggexport(filename = file.path(outputDir, 'suppFig3.pdf'), pTimeCourse, 
-         height = 24, width = 16, units = 'in')
+ggexport(filename = file.path(outputDir, 'suppFig3.pdf'), pTimeCourse)
 
 sampGenes = c('HNRNPDL', 'NR1D2', 'PER2')
 pGlmnetTimeCourseSamp = plotTimeCourse(glmnetTimeCourseDt[gene %in% sampGenes], 
