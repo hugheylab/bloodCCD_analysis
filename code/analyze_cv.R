@@ -107,8 +107,7 @@ pZzNGenes = ggplot(zzGeneSumm) +
 
 pZzCv =  pZzMae / pZzNGenes + 
   plot_annotation(title = 'Zeitzeiger cross-validation')
-ggexport(pZzCv, filename = file.path(outputDir, 'zeitzeiger_cv.pdf'), 
-         width = 12, height = 6, unit = 'in', dpi = 500)
+ggexport(pZzCv, filename = file.path(outputDir, 'zeitzeiger_cv.pdf'))
 
 #### fitting 'best' model from zeitzeiger cv
 finalSumAbsv = 2:3
@@ -141,9 +140,10 @@ zzCoefsMelt = foreach(absv = finalSumAbsv, .combine = rbind) %dopar% {
 qsave(zzCoefsMelt, file = file.path(dataDir, 'zeitzeiger_coefs.qs')) 
 
 #### plot of nonzero gene coefs for zeitzeiger
-pZzCoefs = plotCoefs(zzCoefsMelt, nrow = 2, sumabsv, spc) +
+pZzCoefs = plotCoefs(zzCoefsMelt, ncol = NULL, nrow = 2, sumabsv, spc) +
   ggtitle(glue('Zeitzeiger coefficients for sumabsv = ', 
-               '{paste(finalSumAbsv, collapse = \', \')}'))
+               '{paste(finalSumAbsv, collapse = \', \')}')) +
+  theme(text = element_text(size = 8))
 ggexport(pZzCoefs, filename = file.path(outputDir, 'gene_zeitzeiger_coefs.pdf'))
 
 #compare zeitzeiger 2017
@@ -230,8 +230,7 @@ pGlmnetNGenes = ggplot(glmnetPltDt) +
 
 pGlmnetCv = pGlmnetMae / pGlmnetNGenes +
   plot_annotation(title = 'Glmnet cross-validation')
-ggexport(pGlmnetCv, filename = file.path(outputDir, 'glmnet_cv.pdf'), 
-         width = 12, height = 6, unit = 'in', dpi = 500)
+ggexport(pGlmnetCv, filename = file.path(outputDir, 'glmnet_cv.pdf'))
 
 glmnetSumm = glmnetPltDt[, .(nGenes, mae, 
                              params = lambda)]
@@ -253,31 +252,24 @@ pZzVsGlmnet = ggplot(mdlSumm[nGenes < 60]) +
   labs(x = 'MAE (h)', y = 'Number of genes')
   
 # combining glmnet, zeitzeiger cv plots
-pCvFinal = (pZzCv | pGlmnetCv | pZzVsGlmnet) +
-  plot_annotation(title = 'Cross-validation for Zeitzeiger and elastic net')
-ggexport(pCvFinal, filename = file.path(outputDir, 'bloodCCD_cv.pdf'), 
-         width = 24, height = 12, units = 'in')
-
 fig1 = pZzMae + pGlmnetMae + pZzVsGlmnet +
   plot_layout(ncol = 2, widths = c(1.25, 2)) +
   plot_annotation(tag_levels = 'A')
-ggexport(fig1, filename = file.path(outputDir, 'fig1.pdf'), 
-         width = 1080, height = 720)
+ggexport(fig1, filename = file.path(outputDir, 'fig1.pdf'))
 
 
 geneSummGlmnet = glmnetCoefs[round(lambda, 7) %in% pLambdas]
 qsave(geneSummGlmnet, file = file.path(dataDir, 'glmnet_coefs.qs'))
 
-pGlmnetCoef = plotCoefs(geneSummGlmnet, ncol = 2, as.factor(lambda), param) +
-  ggtitle('Glmnet coefficients by lambda')
-ggsave(filename = file.path(outputDir, 'gene_glmnet_coefs.pdf'), 
-       plot = pGlmnetCoef, width = 18, height = 18, units = 'in', dpi = 500)
+pGlmnetCoef = plotCoefs(geneSummGlmnet,ncol = 2, nrow = NULL, as.factor(lambda), param) +
+  ggtitle('Glmnet coefficients by lambda') +
+  theme(text = element_text(size = 8))
+ggexport(pGlmnetCoef, filename = file.path(outputDir, 'gene_glmnet_coefs_test.pdf'))
 
 suppFig1 = plotCoefs(geneSummGlmnet[, .SD[lambda == min(lambda)]], ncol = 2, 
-                     param)
-ggexport(filename = file.path(outputDir, 'suppFig1.pdf'), 
-       plot = suppFig1, width = 900, height = 600)
+                     nrow = NULL, param)
+ggexport(suppFig1, filename = file.path(outputDir, 'suppFig1.pdf'))
 
-coefsFinal = pZzCoefs | pGlmnetCoef
-ggexport(coefsFinal, filename = file.path(outputDir, 'bloodCCD_coefs.pdf'), 
-         width = 16, height = 20, units = 'in', dpi = 500)
+coefsFinal = pZzCoefs + pGlmnetCoef +
+  plot_layout(ncol = 1)
+ggexport(coefsFinal, filename = file.path(outputDir, 'bloodCCD_coefs_test.pdf'))

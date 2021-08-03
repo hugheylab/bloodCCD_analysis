@@ -7,7 +7,8 @@ glmnetGenes = unique(glmnetCor$gene1)
 cellDataMonaco = fread(file.path(dataDir, 'rna_blood_cell_monaco.tsv.gz'))
 cellDataMonaco = processCellData(cellDataMonaco, glmnetGenes)
 pMonaco = plotCellData(cellDataMonaco) +
-  theme(axis.title.x = eb,
+  theme(text = element_text(size = 8),
+        axis.title.x = eb,
         axis.ticks.x = eb,
         axis.text.x = eb)
 
@@ -18,6 +19,7 @@ pSchmiedel = plotCellData(cellDataSchmiedel)
 
 pCellData =  pMonaco + pSchmiedel +
   plot_layout(heights = c(1, 0.5)) +
-  plot_annotation(tag_levels = 'A')
+  plot_annotation(tag_levels = 'A') +
+  theme(text = element_text(size = 8))
 ggexport(pCellData, filename = file.path(outputDir, 'fig4.pdf'))
 

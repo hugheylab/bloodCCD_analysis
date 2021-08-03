@@ -72,8 +72,8 @@ getTimeCourseDt = function(emat, sm, genes) {
   timeCourseDt = as.data.table(t(emat[genes, sm$sample]), 
                                keep.rownames = 'sample')
   setnames(timeCourseDt, 2:length(colnames(timeCourseDt)), 
-           lookup(colnames(timeCourseDt)[-1], 'org.Hs.eg', 'SYMBOL', 
-                  load = TRUE))
+           unlist(lookUp(colnames(timeCourseDt)[-1], 'org.Hs.eg', 'SYMBOL', 
+                  load = TRUE)))
   
   timeCourseDt = merge(timeCourseDt, sm[, .(study, sample, ztFrac)], 
                        by = 'sample')
