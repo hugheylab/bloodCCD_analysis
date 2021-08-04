@@ -85,10 +85,12 @@ getTimeCourseDt = function(emat, sm, genes) {
   return(timeCourseDt)}
 
 
-plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL, breaks = 4) {
+plotTimeCourse = function(timeCourseDt, ncol = NULL, nrow = NULL, breaks = 4,
+                          size = 1) {
   
   p = ggplot(timeCourseDt) +
-    geom_point(aes(x = ztFrac*24, y = expression, color = study), shape = 1) +
+    geom_point(aes(x = ztFrac*24, y = expression, color = study), shape = 1,
+               size = size) +
     labs(x = 'Expression (norm.)', y = 'Time of day (h)') +
     facet_wrap(vars(gene), scales = 'free_y', ncol = ncol, nrow = nrow) +
     scale_x_continuous(breaks = seq(0, 24, by = breaks), limits = c(0, 24))
